@@ -1,0 +1,30 @@
+:root {
+  --abnt-primary: #1b4d89;
+}
+
+body {
+  background-color: #f5f7fa;
+}
+
+.hero {
+  background: linear-gradient(135deg, #1b4d89 0%, #2f6fb3 100%);
+}
+
+.dropzone {
+  border: 2px dashed #c3ccd8;
+  background-color: #fbfcfe;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+
+.dropzone-ativa {
+  border-color: var(--abnt-primary);
+  background-color: #eef4fb;
+}
+
+.card {
+  border-radius: .75rem;
+}
+
+.navbar-brand {
+  letter-spacing: .2px;
+}

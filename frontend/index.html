@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Formatador ABNT — Formate seu trabalho em segundos</title>
+  <meta name="description" content="Formate seu TCC, monografia ou dissertação nas normas ABNT automaticamente. Envie o .docx e baixe pronto.">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="assets/css/app.css" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="container">
+        <a class="navbar-brand fw-bold" href="#">
+          <i class="bi bi-file-earmark-text me-1"></i>Formatador ABNT
+        </a>
+        <div class="ms-auto d-flex align-items-center gap-3">
+          <span v-if="cotaRestante !== null" class="badge text-bg-light">
+            Grátis hoje: {{ cotaRestante }}
+          </span>
+          <a class="btn btn-outline-light btn-sm" href="#como-funciona">Como funciona</a>
+        </div>
+      </div>
+    </nav>
+
+    <header class="hero text-white text-center">
+      <div class="container py-5">
+        <h1 class="display-6 fw-bold">Formate seu trabalho nas normas ABNT em segundos</h1>
+        <p class="lead mb-0">Envie o <strong>.docx</strong>, escolha as opções e baixe o arquivo pronto.</p>
+      </div>
+    </header>
+
+    <main class="container my-4 my-lg-5">
+      <div class="row g-4">
+        <div class="col-lg-7">
+          <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+              <h2 class="h5 mb-3">1. Envie seu documento</h2>
+
+              <div class="dropzone rounded-3 text-center p-4"
+                   :class="{ 'dropzone-ativa': arrastando }"
+                   @dragover.prevent="arrastando = true"
+                   @dragleave.prevent="arrastando = false"
+                   @drop.prevent="onDrop">
+                <input ref="fileInput" type="file" accept=".docx" class="d-none" @change="onFileChange">
+                <template v-if="!arquivo">
+                  <i class="bi bi-cloud-arrow-up display-5 text-primary"></i>
+                  <p class="mb-2 mt-2">Arraste o arquivo aqui ou</p>
+                  <button class="btn btn-primary" type="button" @click="$refs.fileInput.click()">
+                    Selecionar .docx
+                  </button>
+                  <p class="text-muted small mb-0 mt-2">Somente .docx, até {{ limiteMb }} MB.</p>
+                </template>
+                <template v-else>
+                  <i class="bi bi-file-earmark-check display-5 text-success"></i>
+                  <p class="mb-1 mt-2 fw-semibold text-break">{{ nomeArquivo }}</p>
+                  <p class="text-muted small mb-2">{{ tamanhoLegivel }}</p>
+                  <button class="btn btn-outline-secondary btn-sm" type="button" @click="limparArquivo">
+                    Trocar arquivo
+                  </button>
+                </template>
+              </div>
+
+              <h2 class="h5 mt-4 mb-2">2. Opções</h2>
+              <div class="form-check form-switch">
+                <input id="opt-capa" class="form-check-input" type="checkbox" v-model="opcoes.incluir_capa">
+                <label class="form-check-label" for="opt-capa">Incluir capa</label>
+              </div>
+              <div class="form-check form-switch">
+                <input id="opt-sumario" class="form-check-input" type="checkbox" v-model="opcoes.incluir_sumario">
+                <label class="form-check-label" for="opt-sumario">Incluir sumário automático</label>
+              </div>
+              <div class="form-check form-switch">
+                <input id="opt-validar" class="form-check-input" type="checkbox" v-model="opcoes.validar">
+                <label class="form-check-label" for="opt-validar">Validar estrutura mínima</label>
+              </div>
+
+              <div v-if="opcoes.incluir_capa" class="mt-3">
+                <h3 class="h6 text-muted">Dados da capa</h3>
+                <div class="row g-2">
+                  <div class="col-md-6">
+                    <input class="form-control" placeholder="Instituição" v-model.trim="capa.instituicao">
+                  </div>
+                  <div class="col-md-6">
+                    <input class="form-control" placeholder="Curso" v-model.trim="capa.curso">
+                  </div>
+                  <div class="col-md-6">
+                    <input class="form-control" placeholder="Autor" v-model.trim="capa.autor">
+                  </div>
+                  <div class="col-md-6">
+                    <input class="form-control" placeholder="Título" v-model.trim="capa.titulo">
+                  </div>
+                  <div class="col-md-6">
+                    <input class="form-control" placeholder="Subtítulo (opcional)" v-model.trim="capa.subtitulo">
+                  </div>
+                  <div class="col-md-4">
+                    <input class="form-control" placeholder="Cidade" v-model.trim="capa.cidade">
+                  </div>
+                  <div class="col-md-4">
+                    <input class="form-control" placeholder="Ano" v-model.trim="capa.ano">
+                  </div>
+                </div>
+              </div>
+
+              <h2 class="h5 mt-4 mb-3">3. Formatar</h2>
+              <button class="btn btn-success btn-lg w-100" type="button"
+                      :disabled="!arquivo || status === 'enviando'" @click="formatar">
+                <span v-if="status === 'enviando'" class="spinner-border spinner-border-sm me-2"></span>
+                {{ status === 'enviando' ? 'Processando...' : 'Formatar documento' }}
+              </button>
+
+              <div v-if="status === 'enviando'" class="progress mt-3" role="progressbar">
+                <div class="progress-bar progress-bar-striped progress-bar-animated"
+                     :style="{ width: progresso + '%' }">{{ progresso }}%</div>
+              </div>
+
+              <div v-if="erro" class="alert alert-danger mt-3 mb-0" role="alert">
+                <i class="bi bi-exclamation-triangle me-1"></i>{{ erro }}
+              </div>
+
+              <div v-if="resultado" class="alert alert-success mt-3 mb-0" role="alert">
+                <p class="mb-2"><i class="bi bi-check-circle me-1"></i>Documento formatado com sucesso!</p>
+                <button class="btn btn-success btn-sm" type="button" @click="baixar">
+                  <i class="bi bi-download me-1"></i>Baixar {{ resultado.nome }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-5">
+          <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+              <h2 class="h6 text-uppercase text-muted">O que é aplicado</h2>
+              <ul class="list-unstyled mb-0">
+                <li v-for="item in regrasAplicadas" :key="item" class="mb-2">
+                  <i class="bi bi-check2-circle text-success me-2"></i>{{ item }}
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div class="alert alert-light border small mb-0">
+            <i class="bi bi-info-circle me-1"></i>
+            O sumário é inserido como campo do Word. Abra o arquivo, clique sobre ele e
+            pressione <kbd>F9</kbd> ("Atualizar campo") para renderizar os títulos.
+          </div>
+        </div>
+      </div>
+
+      <section id="como-funciona" class="mt-5">
+        <h2 class="h4 text-center mb-4">Como funciona</h2>
+        <div class="row g-4 text-center">
+          <div class="col-md-4">
+            <div class="p-3"><i class="bi bi-upload display-6 text-primary"></i>
+              <h3 class="h6 mt-2">1. Envie o .docx</h3>
+              <p class="text-muted small mb-0">Arraste o arquivo ou selecione do computador.</p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-3"><i class="bi bi-sliders display-6 text-primary"></i>
+              <h3 class="h6 mt-2">2. Escolha as opções</h3>
+              <p class="text-muted small mb-0">Capa, sumário e validação conforme a sua necessidade.</p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-3"><i class="bi bi-download display-6 text-primary"></i>
+              <h3 class="h6 mt-2">3. Baixe pronto</h3>
+              <p class="text-muted small mb-0">O arquivo volta formatado nas normas ABNT.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="faq" class="mt-5">
+        <h2 class="h4 text-center mb-4">Perguntas frequentes</h2>
+        <div class="accordion" id="faqAccordion">
+          <div class="accordion-item">
+            <h3 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                Meu documento é armazenado?
+              </button>
+            </h3>
+            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">Não. O arquivo é processado em memória e descartado após a resposta.</div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h3 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                Por que o sumário aparece desatualizado?
+              </button>
+            </h3>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">O Word só gera o sumário ao atualizar o campo. Selecione-o e pressione F9.</div>
+            </div>
+          </div>
+          <div class="accordion-item">
+            <h3 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                Vocês aceitam .doc antigo?
+              </button>
+            </h3>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body">Apenas .docx. Abra o arquivo no Word e use "Salvar como" → .docx.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="bg-dark text-white-50 py-4 mt-5">
+      <div class="container text-center small">
+        Formatador ABNT &copy; {{ ano }} — Processamento 100% em memória.
+      </div>
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
