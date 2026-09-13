@@ -1,5 +1,5 @@
 from docx import Document
-from docx.shared import Inches, Pt, RGBColor
+from docx.shared import Cm, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
@@ -13,10 +13,10 @@ def formatar_abnt(doc: Document):
 
     # 1. Configuração das Margens (Superior/Esquerda: 3cm, Inferior/Direita: 2cm)
     secao = doc.sections[0]
-    secao.top_margin = Inches(1.18)    # Aproximadamente 3 cm
-    secao.left_margin = Inches(1.18)
-    secao.bottom_margin = Inches(0.79) # Aproximadamente 2 cm
-    secao.right_margin = Inches(0.79)
+    secao.top_margin = Cm(3)
+    secao.left_margin = Cm(3)
+    secao.bottom_margin = Cm(2)
+    secao.right_margin = Cm(2)
 
     # 2. Formatação dos Parágrafos
     for paragrafo in doc.paragraphs:
