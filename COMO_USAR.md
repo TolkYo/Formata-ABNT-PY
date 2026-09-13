@@ -12,12 +12,14 @@ A API fica disponível em `http://127.0.0.1:8000`.
 
 ## 2. Endpoints
 
-| Método | Rota        | Descrição                                   |
-|--------|-------------|---------------------------------------------|
-| GET    | `/`         | Verifica se a API está no ar                |
-| POST   | `/formatar` | Formata um `.docx` e devolve o arquivo      |
-| GET    | `/docs`     | Documentação interativa (Swagger UI)        |
-| GET    | `/redoc`    | Documentação alternativa (ReDoc)            |
+| Método | Rota                | Descrição                                   |
+|--------|---------------------|---------------------------------------------|
+| GET    | `/`                 | Verifica se a API está no ar                |
+| GET    | `/health`           | Saúde da API e configuração da cota         |
+| POST   | `/formatar`         | Formata um `.docx` e devolve o arquivo      |
+| POST   | `/formatar/validar` | Valida a estrutura mínima sem formatar      |
+| GET    | `/docs`             | Documentação interativa (Swagger UI)        |
+| GET    | `/redoc`            | Documentação alternativa (ReDoc)            |
 
 ---
 
@@ -36,6 +38,10 @@ Recebe um arquivo `.docx` (multipart/form-data) e devolve o documento formatado 
 | `validar`         | bool    | Não         | Se `true`, valida a estrutura mínima antes de formatar.                      |
 
 > Valores booleanos devem ser enviados como `"true"` ou `"false"`.
+>
+> **Cota anônima:** visitantes têm 3 documentos por dia (por IP), configurável
+> via `QUOTA_ANONIMA_DIA`. O restante volta no cabeçalho `X-Quota-Restante`; ao
+> exceder, a API responde `429`.
 
 ### O que a formatação faz (sempre aplicada)
 
@@ -136,4 +142,19 @@ curl.exe -X POST "http://127.0.0.1:8000/formatar" `
 
 - **Sumário automático:** o campo TOC precisa ser atualizado no Word (selecione o campo e pressione `F9`, ou clique com o botão direito → "Atualizar campo") para que o sumário seja gerado.
 - **Sem gravação em disco:** todo o processamento ocorre em memória.
-- **Formatos aceitos:** `.docx` e `.doc` (arquivos `.doc` antigos podem não ser lidos corretamente pelo `python-docx`; prefira `.docx`).
+- **Formatos aceitos:** apenas `.docx`. Arquivos `.doc` antigos são recusados com erro `400` — salve o documento como `.docx` no Word.
+
+---
+
+## 8. Frontend (ferramenta web)
+
+A página única fica em `frontend/index.html` e usa Vue 3 via CDN + Bootstrap 5.3
+(sem build). Para rodar localmente:
+
+1. Suba a API: `uvicorn app.main:app --reload` (porta 8000).
+2. Sirva o frontend, por exemplo: `python -m http.server 5500 --directory frontend`.
+3. Acesse `http://127.0.0.1:5500`.
+
+O endereço da API pode ser trocado definindo `window.API_BASE` antes de carregar
+`assets/js/api.js` (padrão: `http://127.0.0.1:8000`). Em produção, o nginx serve
+o front e faz proxy de `/formatar` para o backend, dispensando essa configuração.
