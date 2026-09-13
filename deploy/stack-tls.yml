@@ -88,7 +88,7 @@ services:
           memory: 128M
       labels:
         - traefik.enable=true
-        - traefik.docker.network=traefik-public
+        - traefik.swarm.network=traefik-public
         - traefik.http.routers.formatador.rule=Host(`${DOMAIN}`)
         - traefik.http.routers.formatador.entrypoints=websecure
         - traefik.http.routers.formatador.tls.certresolver=letsencrypt

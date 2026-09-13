@@ -76,7 +76,7 @@ services:
           memory: 128M
       labels:
         - traefik.enable=true
-        - traefik.docker.network=traefik-public
+        - traefik.swarm.network=traefik-public
         - traefik.http.routers.formatador.rule=PathPrefix(`/`)
         - traefik.http.routers.formatador.entrypoints=web
         - traefik.http.services.formatador.loadbalancer.server.port=80
