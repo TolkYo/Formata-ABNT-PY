@@ -1,12 +1,14 @@
-# Stack HTTP (sem domínio) — Fase 1, acesso por http://SEU-IP
+# Stack HTTPS (com domínio) — Fase 1, acesso por https://SEU-DOMINIO
 #
-# Pré-requisitos na VPS:
+# Use quando tiver um domínio apontando (registro A) para o IP da VPS.
+# Sem domínio, use stack.yml (HTTP).
+#
+# Passos:
 #   1) docker swarm init
 #   2) docker network create --driver overlay --attachable traefik-public
-#   3) Build das imagens (na raiz do projeto):  docker compose build
-#   4) cd deploy && docker stack deploy -c stack.yml formatador
-#
-# Quando tiver um domínio, use o arquivo stack-tls.yml (HTTPS + Let's Encrypt).
+#   3) docker compose build   (na raiz do projeto)
+#   4) cp .env.example .env  e edite DOMAIN/ACME_EMAIL
+#   5) docker stack deploy -c stack-tls.yml formatador
 
 services:
   traefik:
@@ -16,13 +18,23 @@ services:
       - --providers.swarm.exposedbydefault=false
       - --providers.swarm.network=traefik-public
       - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.tlschallenge=true
       - --log.level=INFO
     ports:
       - target: 80
         published: 80
         mode: host
+      - target: 443
+        published: 443
+        mode: host
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - letsencrypt:/letsencrypt
     networks:
       - traefik-public
     deploy:
@@ -75,8 +87,9 @@ services:
       labels:
         - traefik.enable=true
         - traefik.docker.network=traefik-public
-        - traefik.http.routers.formatador.rule=PathPrefix(`/`)
-        - traefik.http.routers.formatador.entrypoints=web
+        - traefik.http.routers.formatador.rule=Host(`${DOMAIN}`)
+        - traefik.http.routers.formatador.entrypoints=websecure
+        - traefik.http.routers.formatador.tls.certresolver=letsencrypt
         - traefik.http.services.formatador.loadbalancer.server.port=80
 
 networks:
@@ -84,3 +97,6 @@ networks:
     external: true
   internal:
     driver: overlay
+
+volumes:
+  letsencrypt:
