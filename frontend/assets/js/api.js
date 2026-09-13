@@ -2,9 +2,10 @@
 (function (global) {
   'use strict';
 
-  // Em produção o nginx serve o front e faz proxy de /formatar para o backend,
-  // então a base vazia (mesma origem) funciona. Em dev, aponte para o uvicorn.
-  var API_BASE = typeof global.API_BASE === 'string' ? global.API_BASE : 'http://127.0.0.1:8000';
+  // Padrão: mesma origem (o nginx faz proxy de /formatar e /health para o
+  // backend). Em dev, com o front servido fora do nginx, defina antes:
+  //   <script>window.API_BASE = 'http://127.0.0.1:8000'</script>
+  var API_BASE = typeof global.API_BASE === 'string' ? global.API_BASE : '';
 
   function extrairErro(xhr) {
     return new Promise(function (resolve) {

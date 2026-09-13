@@ -156,5 +156,6 @@ A página única fica em `frontend/index.html` e usa Vue 3 via CDN + Bootstrap 5
 3. Acesse `http://127.0.0.1:5500`.
 
 O endereço da API pode ser trocado definindo `window.API_BASE` antes de carregar
-`assets/js/api.js` (padrão: `http://127.0.0.1:8000`). Em produção, o nginx serve
-o front e faz proxy de `/formatar` para o backend, dispensando essa configuração.
+`assets/js/api.js`. O padrão é **mesma origem** (o nginx faz proxy de `/formatar`
+e `/health` para o backend). No dev com o front servido fora do nginx, defina
+`window.API_BASE = 'http://127.0.0.1:8000'`.
