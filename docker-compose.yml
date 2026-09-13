@@ -1,0 +1,52 @@
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: formatador-api:latest
+    environment:
+      QUOTA_ANONIMA_DIA: "3"
+      MAX_UPLOAD_MB: "20"
+      CORS_ORIGINS: "*"
+      REDIS_URL: "redis://redis:6379/0"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+    ports:
+      - "8000:8000"
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: formatador-web:latest
+    environment:
+      API_HOST: "api"
+      API_PORT: "8000"
+    depends_on:
+      - api
+    networks:
+      - internal
+    ports:
+      - "8080:80"
+
+networks:
+  internal:
+    driver: bridge
