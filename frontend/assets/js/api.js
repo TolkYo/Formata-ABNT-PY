@@ -45,22 +45,18 @@
       };
 
       xhr.onload = function () {
-        var restante = xhr.getResponseHeader('X-Quota-Restante');
-        restante = restante === null ? null : parseInt(restante, 10);
-
         if (xhr.status >= 200 && xhr.status < 300) {
           var disposicao = xhr.getResponseHeader('Content-Disposition') || '';
           var achado = /filename="?([^"]+)"?/.exec(disposicao);
           resolve({
             blob: xhr.response,
             nome: achado ? achado[1] : 'documento_formatado.docx',
-            restante: restante,
           });
           return;
         }
 
         extrairErro(xhr).then(function (mensagem) {
-          reject({ status: xhr.status, mensagem: mensagem, restante: restante });
+          reject({ status: xhr.status, mensagem: mensagem });
         });
       };
 

@@ -27,7 +27,7 @@
         progresso: 0,
         erro: null,
         resultado: null,
-        cotaRestante: null,
+        doacaoUrl: null,
         limiteMb: LIMITE_PADRAO_MB,
         ano: new Date().getFullYear(),
         regrasAplicadas: [
@@ -57,8 +57,8 @@
     mounted: function () {
       var self = this;
       ApiABNT.info().then(function (dados) {
-        if (dados && datos.quota_anonima_dia) {
-          self.cotaRestante = dados.quota_anonima_dia;
+        if (dados && dados.doacoes_url) {
+          self.doacaoUrl = dados.doacoes_url;
         }
       });
     },
@@ -129,14 +129,10 @@
           var url = URL.createObjectURL(resposta.blob);
           self.resultado = { nome: resposta.nome, url: url };
           self.status = 'idle';
-          if (resposta.restante !== null) self.cotaRestante = resposta.restante;
           self.baixar();
         }).catch(function (falha) {
           self.status = 'idle';
           self.erro = falha.mensagem || 'Não foi possível formatar o documento.';
-          if (falha.restante !== null && falha.restante !== undefined) {
-            self.cotaRestante = falha.restante;
-          }
         });
       },
 

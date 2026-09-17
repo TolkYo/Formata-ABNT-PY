@@ -18,10 +18,11 @@
           <i class="bi bi-file-earmark-text me-1"></i>Formatador ABNT
         </a>
         <div class="ms-auto d-flex align-items-center gap-3">
-          <span v-if="cotaRestante !== null" class="badge text-bg-light">
-            Grátis hoje: {{ cotaRestante }}
-          </span>
           <a class="btn btn-outline-light btn-sm" href="#como-funciona">Como funciona</a>
+          <a v-if="doacaoUrl" class="btn btn-warning btn-sm" :href="doacaoUrl"
+             target="_blank" rel="noopener">
+            <i class="bi bi-heart me-1"></i>Apoiar o projeto
+          </a>
         </div>
       </div>
     </nav>
@@ -209,11 +210,34 @@
           </div>
         </div>
       </section>
+
+      <section id="apoiar" class="mt-5">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body text-center p-4">
+            <i class="bi bi-heart-fill display-6 text-danger"></i>
+            <h2 class="h4 mt-2">Apoie este projeto</h2>
+            <p class="text-muted mb-3">
+              Esta ferramenta é <strong>open source</strong> e de <strong>uso gratuito e ilimitado</strong>.
+              Se ela te ajudou, considere fazer uma doação para cobrir os custos de servidor
+              e manter o projeto no ar. A doação é <strong>voluntária</strong> e não dá direito a
+              nenhuma funcionalidade extra — o uso já é livre para todos.
+            </p>
+            <a v-if="doacaoUrl" class="btn btn-danger" :href="doacaoUrl"
+               target="_blank" rel="noopener">
+              <i class="bi bi-heart me-1"></i>Fazer uma doação
+            </a>
+            <p v-else class="text-muted small mb-0">
+              Em breve disponibilizaremos um canal de doação. Obrigado pelo apoio!
+            </p>
+          </div>
+        </div>
+      </section>
     </main>
 
     <footer class="bg-dark text-white-50 py-4 mt-5">
       <div class="container text-center small">
-        Formatador ABNT &copy; {{ ano }} — Processamento 100% em memória.
+        Formatador ABNT &copy; {{ ano }} — Open source, uso gratuito e ilimitado. Processamento 100% em memória.
+        <a v-if="doacaoUrl" class="link-light ms-1" :href="doacaoUrl" target="_blank" rel="noopener">Apoiar</a>
       </div>
     </footer>
   </div>
