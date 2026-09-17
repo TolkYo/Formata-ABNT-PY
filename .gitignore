@@ -45,3 +45,6 @@ desktop.ini
 *.log
 *.tmp
 tmp/
+
+# Contexto de sessão (resumos locais do agente)
+.contexto/
