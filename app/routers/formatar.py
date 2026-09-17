@@ -1,5 +1,6 @@
 import io
 import os
+import time
 from typing import Optional
 
 from docx import Document
@@ -8,7 +9,6 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.core.config import settings
-from app.core.quota import quota_limiter
 from app.formatter import (
     adicionar_capa,
     adicionar_sumario,
@@ -16,6 +16,7 @@ from app.formatter import (
     formatar_titulos,
     validar_estrutura,
 )
+from app.services import metricas
 
 router = APIRouter(tags=["Publico"])
 
@@ -39,7 +40,7 @@ def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "desconhecido"
 
 
-async def _ler_docx(file: UploadFile) -> Document:
+async def _ler_docx(file: UploadFile) -> tuple[Document, int]:
     nome = (file.filename or "").lower()
 
     if nome.endswith(".doc") and not nome.endswith(".docx"):
@@ -66,7 +67,7 @@ async def _ler_docx(file: UploadFile) -> Document:
         )
 
     try:
-        return Document(io.BytesIO(conteudo))
+        return Document(io.BytesIO(conteudo)), len(conteudo)
     except Exception:
         raise HTTPException(
             status_code=400,
@@ -97,34 +98,28 @@ async def formatar_documento(
 ):
     """Formata um .docx nas normas ABNT e devolve o arquivo para download.
 
-    Visitante anônimo está sujeito à cota diária por IP (HTTP 429).
+    Uso livre e ilimitado, sem cota de negócio. Um rate limit técnico contra
+    abuso é aplicado na borda (nginx), podendo responder 429 temporariamente.
     """
-    doc = await _ler_docx(file)
-    dados_capa = _parse_dados(dados)
-
-    ip = _client_ip(request)
-    permitido, restante = quota_limiter.hit(ip)
-    if not permitido:
-        raise HTTPException(
-            status_code=429,
-            detail=(
-                f"Cota diária de {settings.quota_anonima_dia} documentos atingida. "
-                "Tente novamente amanhã ou crie uma conta para mais documentos."
-            ),
-            headers={"X-Quota-Restante": "0"},
-        )
+    inicio = time.perf_counter()
+    ip_hash = metricas.ip_para_hash(_client_ip(request))
+    tamanho: Optional[int] = None
+    resultado = "erro"
 
     try:
+        doc, tamanho = await _ler_docx(file)
+        dados_capa = _parse_dados(dados)
+
         if validar:
             faltantes = validar_estrutura(doc)
             if faltantes:
+                resultado = "estrutura_invalida"
                 raise HTTPException(
                     status_code=422,
                     detail=(
                         "Documento fora da estrutura mínima. "
                         f"Seções ausentes: {', '.join(faltantes)}."
                     ),
-                    headers={"X-Quota-Restante": str(restante)},
                 )
 
         formatar_abnt(doc)
@@ -142,26 +137,29 @@ async def formatar_documento(
         nome_base = os.path.splitext(file.filename or "documento")[0]
         nome_saida = f"{nome_base}_formatado.docx"
 
+        resultado = "sucesso"
         return StreamingResponse(
             output,
             media_type=DOCX_MIME,
-            headers={
-                "Content-Disposition": f'attachment; filename="{nome_saida}"',
-                "X-Quota-Restante": str(restante),
-            },
+            headers={"Content-Disposition": f'attachment; filename="{nome_saida}"'},
         )
-    except HTTPException:
+    except HTTPException as exc:
+        resultado = "estrutura_invalida" if exc.status_code == 422 else "erro"
         raise
     except Exception as erro:
+        resultado = "erro"
         raise HTTPException(
             status_code=500,
             detail=f"Erro ao processar o arquivo: {erro}",
         )
+    finally:
+        duracao_ms = int((time.perf_counter() - inicio) * 1000)
+        metricas.registrar_evento(ip_hash, resultado, duracao_ms, tamanho)
 
 
 @router.post("/formatar/validar")
 async def validar_documento(file: UploadFile = File(...)):
-    """Valida a estrutura mínima do documento sem formatar (não consome cota)."""
-    doc = await _ler_docx(file)
+    """Valida a estrutura mínima do documento sem formatar."""
+    doc, _ = await _ler_docx(file)
     faltantes = validar_estrutura(doc)
     return {"valido": not faltantes, "secoes_ausentes": faltantes}
