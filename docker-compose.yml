@@ -1,9 +1,14 @@
 services:
-  redis:
-    image: redis:7-alpine
-    command: ["redis-server", "--save", "", "--appendonly", "no"]
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: formatador
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-formatador}"
+      POSTGRES_DB: formatador
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "pg_isready -U formatador"]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -12,7 +17,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 128M
+          memory: 256M
 
   api:
     build:
@@ -20,12 +25,21 @@ services:
       dockerfile: Dockerfile
     image: formatador-api:latest
     environment:
-      QUOTA_ANONIMA_DIA: "3"
       MAX_UPLOAD_MB: "20"
       CORS_ORIGINS: "*"
-      REDIS_URL: "redis://redis:6379/0"
+      # Link de doacao exibido no site (opcional)
+      DOACOES_URL: ""
+      # Fase 2 — metricas/auditoria
+      DATABASE_URL: "postgresql+psycopg://formatador:${POSTGRES_PASSWORD:-formatador}@postgres:5432/formatador"
+      ADMIN_API_KEY: "${ADMIN_API_KEY:-troque-esta-chave}"
+      IP_HASH_SALT: "${IP_HASH_SALT:-troque-este-sal}"
+      AUTO_CRIAR_TABELAS: "true"
+      SENTRY_DSN: "${SENTRY_DSN:-}"
+      SENTRY_ENVIRONMENT: "${SENTRY_ENVIRONMENT:-production}"
+      SENTRY_TRACES_SAMPLE_RATE: "${SENTRY_TRACES_SAMPLE_RATE:-0.0}"
+      ALERTA_WEBHOOK_URL: "${ALERTA_WEBHOOK_URL:-}"
     depends_on:
-      redis:
+      postgres:
         condition: service_healthy
     networks:
       - internal
@@ -58,3 +72,6 @@ services:
 networks:
   internal:
     driver: bridge
+
+volumes:
+  postgres-data:

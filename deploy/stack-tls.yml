@@ -1,4 +1,4 @@
-# Stack HTTPS (com domínio) — Fase 1, acesso por https://SEU-DOMINIO
+# Stack HTTPS (com domínio) — Fase 1/2, acesso por https://SEU-DOMINIO
 #
 # Use quando tiver um domínio apontando (registro A) para o IP da VPS.
 # Sem domínio, use stack.yml (HTTP).
@@ -7,8 +7,10 @@
 #   1) docker swarm init
 #   2) docker network create --driver overlay --attachable traefik-public
 #   3) docker compose build   (na raiz do projeto)
-#   4) cp .env.example .env  e edite DOMAIN/ACME_EMAIL
+#   4) cp .env.example .env  e edite DOMAIN/ACME_EMAIL/POSTGRES_PASSWORD/ADMIN_API_KEY
 #   5) docker stack deploy -c stack-tls.yml formatador
+#
+# Variáveis: DOMAIN, ACME_EMAIL, POSTGRES_PASSWORD, ADMIN_API_KEY, IP_HASH_SALT, DOACOES_URL.
 
 services:
   traefik:
@@ -47,24 +49,36 @@ services:
         limits:
           memory: 128M
 
-  redis:
-    image: redis:7-alpine
-    command: ["redis-server", "--save", "", "--appendonly", "no"]
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: formatador
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-formatador}"
+      POSTGRES_DB: formatador
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
     networks:
       - internal
     deploy:
       replicas: 1
       resources:
         limits:
-          memory: 128M
+          memory: 256M
 
   api:
     image: formatador-api:latest
     environment:
-      QUOTA_ANONIMA_DIA: "3"
       MAX_UPLOAD_MB: "20"
       CORS_ORIGINS: "*"
-      REDIS_URL: "redis://redis:6379/0"
+      DOACOES_URL: "${DOACOES_URL:-}"
+      DATABASE_URL: "postgresql+psycopg://formatador:${POSTGRES_PASSWORD:-formatador}@postgres:5432/formatador"
+      ADMIN_API_KEY: "${ADMIN_API_KEY:-troque-esta-chave}"
+      IP_HASH_SALT: "${IP_HASH_SALT:-troque-este-sal}"
+      AUTO_CRIAR_TABELAS: "true"
+      SENTRY_DSN: "${SENTRY_DSN:-}"
+      SENTRY_ENVIRONMENT: "${SENTRY_ENVIRONMENT:-production}"
+      SENTRY_TRACES_SAMPLE_RATE: "${SENTRY_TRACES_SAMPLE_RATE:-0.0}"
+      ALERTA_WEBHOOK_URL: "${ALERTA_WEBHOOK_URL:-}"
     networks:
       - internal
     deploy:
@@ -102,3 +116,4 @@ networks:
 
 volumes:
   letsencrypt:
+  postgres-data:

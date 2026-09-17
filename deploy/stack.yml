@@ -1,10 +1,13 @@
-# Stack HTTP (sem domínio) — Fase 1, acesso por http://SEU-IP
+# Stack HTTP (sem domínio) — Fase 1/2, acesso por http://SEU-IP
 #
 # Pré-requisitos na VPS:
 #   1) docker swarm init
 #   2) docker network create --driver overlay --attachable traefik-public
 #   3) Build das imagens (na raiz do projeto):  docker compose build
 #   4) cd deploy && docker stack deploy -c stack.yml formatador
+#
+# Variáveis opcionais (exporte antes do deploy): POSTGRES_PASSWORD, ADMIN_API_KEY,
+# IP_HASH_SALT, DOACOES_URL.
 #
 # Quando tiver um domínio, use o arquivo stack-tls.yml (HTTPS + Let's Encrypt).
 
@@ -35,24 +38,36 @@ services:
         limits:
           memory: 128M
 
-  redis:
-    image: redis:7-alpine
-    command: ["redis-server", "--save", "", "--appendonly", "no"]
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: formatador
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-formatador}"
+      POSTGRES_DB: formatador
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
     networks:
       - internal
     deploy:
       replicas: 1
       resources:
         limits:
-          memory: 128M
+          memory: 256M
 
   api:
     image: formatador-api:latest
     environment:
-      QUOTA_ANONIMA_DIA: "3"
       MAX_UPLOAD_MB: "20"
       CORS_ORIGINS: "*"
-      REDIS_URL: "redis://redis:6379/0"
+      DOACOES_URL: "${DOACOES_URL:-}"
+      DATABASE_URL: "postgresql+psycopg://formatador:${POSTGRES_PASSWORD:-formatador}@postgres:5432/formatador"
+      ADMIN_API_KEY: "${ADMIN_API_KEY:-troque-esta-chave}"
+      IP_HASH_SALT: "${IP_HASH_SALT:-troque-este-sal}"
+      AUTO_CRIAR_TABELAS: "true"
+      SENTRY_DSN: "${SENTRY_DSN:-}"
+      SENTRY_ENVIRONMENT: "${SENTRY_ENVIRONMENT:-production}"
+      SENTRY_TRACES_SAMPLE_RATE: "${SENTRY_TRACES_SAMPLE_RATE:-0.0}"
+      ALERTA_WEBHOOK_URL: "${ALERTA_WEBHOOK_URL:-}"
     networks:
       - internal
     deploy:
@@ -86,3 +101,6 @@ networks:
     external: true
   internal:
     driver: overlay
+
+volumes:
+  postgres-data:
