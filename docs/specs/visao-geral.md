@@ -28,7 +28,7 @@ O nucleo de formatacao ja existe como API FastAPI (`app/main.py`,
 - **Backend**: FastAPI (reaproveitado do projeto atual).
 - **Cache**: Redis (opcional) para fila e metricas.
 - **Banco**: PostgreSQL minimo (eventos de uso e auditoria).
-- **Deploy**: Docker Swarm + Traefik + nginx.
+- **Deploy**: Docker Swarm + nginx do host (borda/TLS) + nginx do front.
 
 > Removidos do escopo: cadastro/login JWT, saldo de creditos, ledger, pacotes
 > pay-per-use, painel do usuario, limitador de requisicoes **e todo o fluxo de
@@ -43,14 +43,14 @@ O nucleo de formatacao ja existe como API FastAPI (`app/main.py`,
 | Cache | Redis (opcional) | Fila de jobs (F3) e metricas |
 | Doacoes | A definir (plataforma externa ou Pix) | Unica forma de arrecadacao, sem contraprestacao |
 | Admin | Chave secreta de ambiente | Sem contas de usuario; acesso restrito por `X-Admin-Key` |
-| Deploy | Docker Swarm + Traefik + nginx | Infra ja operada pelo usuario |
+| Deploy | Docker Swarm + nginx do host + nginx do front | Borda 80/443 + TLS (Certbot) ja operada na VPS |
 
 ## Diagrama de Arquitetura
 ```mermaid
 graph TD
-    U[Usuario anonimo] -->|HTTPS| T[Traefik: rate limit tecnico]
-    T --> N[nginx - front estatico]
-    T --> A[FastAPI /api/v1]
+    U[Usuario anonimo] -->|HTTPS| T[nginx do host: TLS/Certbot]
+    T -->|proxy :8080| N[nginx front: rate limit + estatico]
+    N --> A[FastAPI /api/v1]
     N -->|Vue 3 CDN| U
     A --> FMT[Nucleo formatter.py]
     A --> R[(Redis opcional: fila/metricas)]
@@ -76,7 +76,7 @@ graph TD
 ├── docs/
 │   ├── index.md
 │   └── specs/
-├── deploy/                 # docker-compose, nginx.conf, traefik labels
+├── deploy/                 # docker-compose, stack e config do nginx
 ├── requirements.txt
 ├── LICENSE                 # licenca open source
 └── .env.example

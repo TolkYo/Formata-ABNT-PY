@@ -1,43 +1,18 @@
-# Stack HTTP (sem domínio) — Fase 1/2, acesso por http://SEU-IP
+# Stack Swarm — aplicação + Postgres.
+#
+# A borda (80/443 + TLS do Certbot) é o **nginx do host**, que faz proxy para
+# http://127.0.0.1:8080 (serviço `web` publicado neste stack). Não há Traefik.
 #
 # Pré-requisitos na VPS:
 #   1) docker swarm init
-#   2) docker network create --driver overlay --attachable traefik-public
-#   3) Build das imagens (na raiz do projeto):  docker compose build
-#   4) cd deploy && docker stack deploy -c stack.yml formatador
+#   2) Build das imagens (na raiz do projeto):  docker compose build
+#   3) Variáveis:  cd deploy && cp .env.example .env  (edite) ; set -a; . ./.env; set +a
+#   4) docker stack deploy -c stack.yml formatador
 #
-# Variáveis opcionais (exporte antes do deploy): POSTGRES_PASSWORD, ADMIN_API_KEY,
-# IP_HASH_SALT, DOACOES_URL.
-#
-# Quando tiver um domínio, use o arquivo stack-tls.yml (HTTPS + Let's Encrypt).
+# Variáveis usadas: POSTGRES_PASSWORD, ADMIN_API_KEY, IP_HASH_SALT, DOACOES_URL,
+# SENTRY_DSN, SENTRY_ENVIRONMENT, SENTRY_TRACES_SAMPLE_RATE, ALERTA_WEBHOOK_URL.
 
 services:
-  traefik:
-    image: traefik:v3.7
-    environment:
-      DOCKER_API_VERSION: "1.40"
-    command:
-      - --providers.swarm=true
-      - --providers.swarm.exposedbydefault=false
-      - --providers.swarm.network=traefik-public
-      - --entrypoints.web.address=:80
-      - --log.level=INFO
-    ports:
-      - target: 80
-        published: 80
-        mode: host
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks:
-      - traefik-public
-    deploy:
-      placement:
-        constraints:
-          - node.role == manager
-      resources:
-        limits:
-          memory: 128M
-
   postgres:
     image: postgres:16-alpine
     environment:
@@ -52,7 +27,7 @@ services:
       replicas: 1
       resources:
         limits:
-          memory: 256M
+          memory: 512M
 
   api:
     image: formatador-api:latest
@@ -79,26 +54,22 @@ services:
   web:
     image: formatador-web:latest
     environment:
-      API_HOST: "formatador_api"
+      API_HOST: "api"
       API_PORT: "8000"
+    ports:
+      - target: 80
+        published: 8080
+        protocol: tcp
+        mode: host
     networks:
-      - traefik-public
       - internal
     deploy:
       replicas: 1
       resources:
         limits:
           memory: 128M
-      labels:
-        - traefik.enable=true
-        - traefik.swarm.network=traefik-public
-        - traefik.http.routers.formatador.rule=PathPrefix(`/`)
-        - traefik.http.routers.formatador.entrypoints=web
-        - traefik.http.services.formatador.loadbalancer.server.port=80
 
 networks:
-  traefik-public:
-    external: true
   internal:
     driver: overlay
 

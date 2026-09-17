@@ -3,7 +3,7 @@ resolver 127.0.0.11 ipv6=off valid=10s;
 # Rate limit tecnico anti-flood (nao e cota de negocio: o uso e ilimitado).
 limit_req_zone $binary_remote_addr zone=formatar:10m rate=60r/m;
 
-# Confia no X-Forwarded-For vindo de redes privadas (Traefik) para limitar por IP real.
+# Confia no X-Forwarded-For vindo de redes privadas (nginx do host) para limitar por IP real.
 set_real_ip_from 10.0.0.0/8;
 set_real_ip_from 172.16.0.0/12;
 set_real_ip_from 192.168.0.0/16;

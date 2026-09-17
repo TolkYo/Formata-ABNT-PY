@@ -17,7 +17,7 @@ Objetivo: publicar o projeto aberto com uso gratuito e ilimitado, sustentado por
 - [ ] RF014 — Layout responsivo
 - [ ] Publicacao open source: `LICENSE`, `README`, `CONTRIBUTING`, `CODE_OF_CONDUCT`
 - [ ] Corrigir dividas do nucleo: margens em `Cm(3)`/`Cm(2)`, suporte/aviso para `.doc`
-- [ ] Deploy Docker Swarm + Traefik + nginx
+- [ ] Deploy Docker Swarm + nginx do host (TLS/Certbot)
 - [ ] Analytics basico (documentos/dia, taxa de erro)
 
 ## Fase 2 — Observabilidade e admin minimo

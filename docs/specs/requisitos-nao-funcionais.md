@@ -19,10 +19,10 @@
 | ID | Requisito | Metrica/Alvo |
 |----|-----------|--------------|
 | RNF010 | Admin | Rotas `/admin` protegidas por chave secreta de ambiente (`X-Admin-Key`) |
-| RNF011 | Comunicacao | HTTPS/TLS via Traefik |
+| RNF011 | Comunicacao | HTTPS/TLS via nginx do host (Certbot) |
 | RNF012 | Upload | Validar extensao real e tamanho; sanitizar nome de arquivo |
 | RNF013 | Segredos | Somente via variaveis de ambiente / secrets do Swarm |
-| RNF014 | Abuso | Rate limit generico por IP na borda (nginx/Traefik) contra floods |
+| RNF014 | Abuso | Rate limit generico por IP na borda (nginx) contra floods |
 | RNF015 | Sem transacoes | Nenhum dado financeiro/cartao trafega ou e armazenado no sistema |
 
 ## Privacidade e LGPD
@@ -37,7 +37,7 @@
 | ID | Requisito | Metrica/Alvo |
 |----|-----------|--------------|
 | RNF030 | Uptime | 99.5% evolui para 99.9% (F3) |
-| RNF031 | Healthcheck | Endpoint `/health` monitorado pelo Traefik/Swarm |
+| RNF031 | Healthcheck | Endpoint `/health` monitorado pelo nginx/Swarm |
 | RNF032 | Falhas | Erros tratados sem perda de dados; jobs reprocessaveis |
 | RNF033 | Deploy | Rolling update sem downtime perceptivel |
 

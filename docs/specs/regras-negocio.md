@@ -41,7 +41,7 @@
 
 **RN012 - Rate limit tecnico**
 - **Condicao**: rajada anormal de requisicoes do mesmo IP.
-- **Comportamento**: aplicar limite generoso na borda (nginx/Traefik); uso humano normal nunca e afetado.
+- **Comportamento**: aplicar limite generoso na borda (nginx); uso humano normal nunca e afetado.
 - **Excecao**: IPs de monitoracao/teste podem ser isentos por configuracao.
 
 ## Entidade: Doacoes (F1)
