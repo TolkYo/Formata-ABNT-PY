@@ -1,7 +1,7 @@
 # Roadmap
 
-## Fase 1 — MVP: ferramenta web publica (sem login)
-Objetivo: validar demanda e usabilidade antes de investir em cobranca.
+## Fase 1 — MVP open source: ferramenta publica (sem login)
+Objetivo: publicar o projeto aberto com uso gratuito e ilimitado, sustentado por doacoes.
 
 - [ ] RF001 — Upload drag-and-drop de `.docx`/`.doc`
 - [ ] RF002 — Opcoes: capa, sumario, validacao
@@ -11,52 +11,50 @@ Objetivo: validar demanda e usabilidade antes de investir em cobranca.
 - [ ] RF006 — Aviso de estrutura minima (secoes ausentes)
 - [ ] RF010 — Pagina unica com Vue 3 CDN + Bootstrap
 - [ ] RF011 — Estados de upload/processamento/erro
-- [ ] RF012 — Cota anonima por IP (Redis)
+- [ ] RF012/RF020 — Uso **gratuito e ilimitado**, sem cota e sem login
+- [ ] RF021/RF022 — Rate limit tecnico anti-flood na borda (ex.: 60 req/min por IP)
+- [ ] RF040-RF042 — Botao "Apoiar o projeto" com link externo de doacao
 - [ ] RF014 — Layout responsivo
+- [ ] Publicacao open source: `LICENSE`, `README`, `CONTRIBUTING`, `CODE_OF_CONDUCT`
 - [ ] Corrigir dividas do nucleo: margens em `Cm(3)`/`Cm(2)`, suporte/aviso para `.doc`
 - [ ] Deploy Docker Swarm + Traefik + nginx
 - [ ] Analytics basico (documentos/dia, taxa de erro)
 
-## Fase 2 — Conta, creditos, cobranca e administracao
-Objetivo: monetizar com pacotes de creditos e operar o negocio.
+## Fase 2 — Observabilidade e admin minimo
+Objetivo: acompanhar uso e manter o projeto saudavel, sem contas de usuario.
 
-- [ ] RF020-RF024 — Cadastro, login JWT, refresh, logout, recuperacao de senha
-- [ ] RF030-RF034 — Saldo, debito por documento, extrato, bloqueio por saldo, estorno
-- [ ] RF040-RF044 — Pacotes, checkout Mercado Pago (Pix/cartao/boleto), webhook idempotente
-- [ ] RF050-RF052 — Painel: documentos, perfil
-- [ ] RF060-RF065 — Admin: login por papel, metricas de uso, faturamento e usuarios
-- [ ] RF080-RF086 — Tokens de acesso: gerar em lote, listar, revogar e resgatar
-- [ ] Migracoes Alembic + PostgreSQL
-- [ ] E-mails transacionais (verificacao, compra, senha)
-- [ ] Testes de regras de credito (concorrencia/ledger)
+- [ ] RF050-RF052 — Admin minimo (somente leitura): metricas de uso e auditoria
+- [ ] PostgreSQL minimo para eventos de uso e auditoria (migracoes Alembic)
+- [ ] Dashboards de uso e taxa de erro
+- [ ] Alertas de erro e de consumo anomalo
+- [ ] Testes de formatacao e anti-abuso
 
-## Fase 3 — Escala e distribuicao
-Objetivo: melhorar desempenho e reduzir custo de suporte.
+## Fase 3 — Escala e sustentabilidade
+Objetivo: melhorar desempenho, reduzir custo e ampliar a comunidade.
 
 - [ ] Fila (Redis + workers) para arquivos grandes
-- [ ] Observabilidade: Sentry, metricas, dashboards
+- [ ] Observabilidade: Sentry, metricas, dashboards avancados
 - [ ] Landing page de SEO + conteudo academico
 - [ ] Politica de privacidade e termos de uso (LGPD)
+- [ ] Automacao do reconhecimento de doacoes (metas, agradecimentos)
 
 ## Decisoes em Aberto
 | Tema | Ponto a decidir |
 |------|-----------------|
-| Custo por documento | 1 credito fixo (F2) vs. por pagina/tamanho (F3) |
-| Canal de acesso | **Definido**: somente pelo site; sem API publica para terceiros |
-| Precos dos pacotes | **Definido**: avulso R$ 7,00; pacotes a R$ 3,00/credito (5=R$15, 15=R$45, 40=R$120) |
-| Expiração de creditos | Sem expiracao na F2; revisar |
-| Limite anonimo | 3/dia e o ponto de partida; calibrar com dados |
-| Provedor de e-mail | Resend vs. AWS SES |
+| Licenca | MIT vs. AGPL-3.0 (copyleft forte para servico) |
+| Plataforma de doacoes | GitHub Sponsors vs. Ko-fi vs. Pix proprio |
+| Rate limit tecnico | Limite exato na borda (ex.: 60 req/min por IP) |
+| Retencao de logs/eventos | Prazo e anonimizacao |
 
 ## Estado das Specs
 | Arquivo | Status | Revisado em |
 |---------|--------|-------------|
-| visao-geral.md | Em revisao | - |
-| requisitos-funcionais.md | Em revisao | - |
-| regras-negocio.md | Em revisao | - |
-| requisitos-nao-funcionais.md | Em revisao | - |
-| modelo-dados.md | Em revisao | - |
-| api-spec.md | Em revisao | - |
-| componentes-frontend.md | Em revisao | - |
-| fluxos-ux.md | Em revisao | - |
-| roadmap.md | Em revisao | - |
+| visao-geral.md | Revisado (open source, uso ilimitado, doacoes) | 2026-09-16 |
+| requisitos-funcionais.md | Revisado | 2026-09-16 |
+| regras-negocio.md | Revisado | 2026-09-16 |
+| requisitos-nao-funcionais.md | Revisado | 2026-09-16 |
+| modelo-dados.md | Revisado | 2026-09-16 |
+| api-spec.md | Revisado | 2026-09-16 |
+| componentes-frontend.md | Revisado | 2026-09-16 |
+| fluxos-ux.md | Revisado | 2026-09-16 |
+| roadmap.md | Revisado | 2026-09-16 |

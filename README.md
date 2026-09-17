@@ -15,9 +15,11 @@ A API fica disponível em `http://127.0.0.1:8000`.
 | Método | Rota                | Descrição                                   |
 |--------|---------------------|---------------------------------------------|
 | GET    | `/`                 | Verifica se a API está no ar                |
-| GET    | `/health`           | Saúde da API e configuração da cota         |
+| GET    | `/health`           | Saúde da API e link de doações              |
 | POST   | `/formatar`         | Formata um `.docx` e devolve o arquivo      |
 | POST   | `/formatar/validar` | Valida a estrutura mínima sem formatar      |
+| GET    | `/admin/metricas/uso` | Métricas de uso (requer `X-Admin-Key`, F2) |
+| GET    | `/admin/auditoria`  | Trilha de auditoria (requer `X-Admin-Key`, F2) |
 | GET    | `/docs`             | Documentação interativa (Swagger UI)        |
 | GET    | `/redoc`            | Documentação alternativa (ReDoc)            |
 
@@ -39,9 +41,9 @@ Recebe um arquivo `.docx` (multipart/form-data) e devolve o documento formatado 
 
 > Valores booleanos devem ser enviados como `"true"` ou `"false"`.
 >
-> **Cota anônima:** visitantes têm 3 documentos por dia (por IP), configurável
-> via `QUOTA_ANONIMA_DIA`. O restante volta no cabeçalho `X-Quota-Restante`; ao
-> exceder, a API responde `429`.
+> **Uso gratuito e ilimitado:** não há cota nem login. Um *rate limit* técnico
+> contra abuso é aplicado na borda (nginx), podendo responder `429` de forma
+> temporária em rajadas anormais — o uso humano normal não é afetado.
 
 ### O que a formatação faz (sempre aplicada)
 
@@ -159,3 +161,58 @@ O endereço da API pode ser trocado definindo `window.API_BASE` antes de carrega
 `assets/js/api.js`. O padrão é **mesma origem** (o nginx faz proxy de `/formatar`
 e `/health` para o backend). No dev com o front servido fora do nginx, defina
 `window.API_BASE = 'http://127.0.0.1:8000'`.
+
+---
+
+## 9. Apoiar o projeto (doações)
+
+Este é um projeto **open source**, de **uso gratuito e ilimitado**, sustentado por
+**doações voluntárias**. Para exibir o botão de doação no site, defina a variável
+de ambiente `DOACOES_URL` (ex.: `https://github.com/sponsors/seu-usuario`); o valor
+é exposto em `GET /health` e lido pelo frontend. Doações são **voluntárias** e **não**
+concedem nenhum benefício funcional.
+
+---
+
+## 10. Painel admin e métricas (Fase 2)
+
+A Fase 2 adiciona métricas de uso e trilha de auditoria (admin mínimo, somente leitura).
+É **opcional**: sem `DATABASE_URL`, o núcleo continua funcionando e nada é persistido.
+
+### Configuração
+
+- `DATABASE_URL` — conexão PostgreSQL (ex.: `postgresql+psycopg://...`).
+- `ADMIN_API_KEY` — chave do painel (enviada no header `X-Admin-Key`).
+- `IP_HASH_SALT` — sal para anonimizar o IP (hash SHA-256).
+- `AUTO_CRIAR_TABELAS` — `true` cria as tabelas no start (dev). Em produção use Alembic.
+
+### Migrações (Alembic)
+
+```bash
+alembic upgrade head
+```
+
+### Endpoints
+
+| Método | Rota                  | Descrição                                   |
+|--------|-----------------------|---------------------------------------------|
+| GET    | `/admin/metricas/uso` | Totais, taxa de erro e série diária (`de`/`ate`) |
+| GET    | `/admin/auditoria`    | Trilha de auditoria paginada                |
+
+Ambos exigem `X-Admin-Key`; sem a chave/chave errada respondem `401`, e sem banco `503`.
+
+### Painel web
+
+O painel fica em `/admin` (`frontend/admin.html`); informe a chave para consultar as
+métricas e a auditoria. O nginx serve a página e faz proxy de `/admin/...` para a API.
+
+### Observabilidade e alertas
+
+- `SENTRY_DSN` — ativa o Sentry (erros + release); sem DSN, fica desligado.
+- `SENTRY_ENVIRONMENT` (padrão `production`) e `SENTRY_TRACES_SAMPLE_RATE` (padrão `0.0`).
+- `ALERTA_WEBHOOK_URL` — webhook compatível com Slack/Discord (opcional; sem ele os
+  alertas saem no log e no Sentry).
+- Alertas verificam a janela recente a cada `ALERTA_INTERVALO_MIN` (padrão 15) minutos,
+  disparando quando a taxa de erro passa de `ALERTA_TAXA_ERRO` (padrão 0.3) ou o volume
+  passa de `ALERTA_VOLUME_MAX` (> 0), respeitando `ALERTA_MIN_DOCUMENTOS` e um cooldown
+  (`ALERTA_COOLDOWN_MIN`). Exigem `DATABASE_URL` (usam os eventos de uso).
