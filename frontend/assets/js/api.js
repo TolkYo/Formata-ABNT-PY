@@ -32,10 +32,10 @@
     });
   }
 
-  function formatar(payload, onProgress) {
+  function enviarDocumento(rota, payload, nomePadrao, onProgress) {
     return new Promise(function (resolve, reject) {
       var xhr = new XMLHttpRequest();
-      xhr.open('POST', API_BASE + '/formatar');
+      xhr.open('POST', API_BASE + rota);
       xhr.responseType = 'blob';
 
       xhr.upload.onprogress = function (evento) {
@@ -50,7 +50,7 @@
           var achado = /filename="?([^"]+)"?/.exec(disposicao);
           resolve({
             blob: xhr.response,
-            nome: achado ? achado[1] : 'documento_formatado.docx',
+            nome: achado ? achado[1] : nomePadrao,
           });
           return;
         }
@@ -66,6 +66,16 @@
 
       xhr.send(payload);
     });
+  }
+
+  function formatar(payload, onProgress) {
+    return enviarDocumento('/formatar', payload, 'documento_formatado.docx', onProgress);
+  }
+
+  function normalizarFametro(file, onProgress) {
+    var form = new FormData();
+    form.append('file', file);
+    return enviarDocumento('/formatar/fametro', form, 'documento_fametro.docx', onProgress);
   }
 
   function validar(file) {
@@ -88,5 +98,11 @@
     }).catch(function () { return {}; });
   }
 
-  global.ApiABNT = { base: API_BASE, formatar: formatar, validar: validar, info: info };
+  global.ApiABNT = {
+    base: API_BASE,
+    formatar: formatar,
+    normalizarFametro: normalizarFametro,
+    validar: validar,
+    info: info,
+  };
 })(window);

@@ -9,6 +9,7 @@
       return {
         arquivo: null,
         arrastando: false,
+        modoFormatacao: 'abnt',
         opcoes: {
           incluir_capa: false,
           incluir_sumario: false,
@@ -32,13 +33,6 @@
         copiado: false,
         limiteMb: LIMITE_PADRAO_MB,
         ano: new Date().getFullYear(),
-        regrasAplicadas: [
-          'Margens: 3 cm (superior/esquerda) e 2 cm (inferior/direita)',
-          'Fonte Arial 12 em todo o texto',
-          'Espaçamento entre linhas de 1,5',
-          'Texto justificado',
-          'Títulos formatados conforme a ABNT',
-        ],
       };
     },
 
@@ -53,6 +47,35 @@
       },
       limiteBytes: function () {
         return this.limiteMb * 1024 * 1024;
+      },
+      fametroSelecionado: function () {
+        return this.modoFormatacao === 'fametro';
+      },
+      textoBotao: function () {
+        return this.fametroSelecionado ? 'Normalizar artigo FAMETRO' : 'Formatar documento';
+      },
+      mensagemSucesso: function () {
+        return this.fametroSelecionado
+          ? 'Artigo normalizado no padrão FAMETRO com sucesso!'
+          : 'Documento formatado com sucesso!';
+      },
+      regrasAplicadas: function () {
+        if (this.fametroSelecionado) {
+          return [
+            'Identificação automática de título, autores e resumo',
+            'Estilos próprios para seções, subseções e referências',
+            'Arial 10 no resumo e Arial 12 nos demais elementos',
+            'Margens: 3 cm (superior/esquerda) e 2 cm (inferior/direita)',
+            'Preservação de notas de rodapé e destaques do conteúdo',
+          ];
+        }
+        return [
+          'Margens: 3 cm (superior/esquerda) e 2 cm (inferior/direita)',
+          'Fonte Arial 12 em todo o texto',
+          'Espaçamento entre linhas de 1,5',
+          'Texto justificado',
+          'Títulos formatados conforme a ABNT',
+        ];
       },
     },
 
@@ -119,18 +142,26 @@
         this.erro = null;
         this.resultado = null;
 
-        var form = new FormData();
-        form.append('file', this.arquivo);
-        form.append('incluir_capa', this.opcoes.incluir_capa);
-        form.append('incluir_sumario', this.opcoes.incluir_sumario);
-        form.append('validar', this.opcoes.validar);
-        if (this.opcoes.incluir_capa) {
-          form.append('dados', JSON.stringify(this.capa));
+        var atualizarProgresso = function (percentual) {
+          self.progresso = percentual;
+        };
+        var requisicao;
+
+        if (this.fametroSelecionado) {
+          requisicao = ApiABNT.normalizarFametro(this.arquivo, atualizarProgresso);
+        } else {
+          var form = new FormData();
+          form.append('file', this.arquivo);
+          form.append('incluir_capa', this.opcoes.incluir_capa);
+          form.append('incluir_sumario', this.opcoes.incluir_sumario);
+          form.append('validar', this.opcoes.validar);
+          if (this.opcoes.incluir_capa) {
+            form.append('dados', JSON.stringify(this.capa));
+          }
+          requisicao = ApiABNT.formatar(form, atualizarProgresso);
         }
 
-        ApiABNT.formatar(form, function (percentual) {
-          self.progresso = percentual;
-        }).then(function (resposta) {
+        requisicao.then(function (resposta) {
           var url = URL.createObjectURL(resposta.blob);
           self.resultado = { nome: resposta.nome, url: url };
           self.status = 'idle';
