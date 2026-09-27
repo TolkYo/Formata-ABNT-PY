@@ -57,6 +57,45 @@ def test_servico_classifica_e_normaliza_o_artigo():
     assert round(secao.left_margin.cm, 1) == 3.0
 
 
+def test_separa_titulos_numerados_colados_ao_corpo():
+    documento = Document()
+    documento.add_paragraph("Título do artigo")
+    documento.add_paragraph("Autor")
+    documento.add_paragraph("RESUMO")
+    documento.add_paragraph("Resumo do trabalho.")
+    documento.add_paragraph("Palavras-chave: teste.")
+    documento.add_paragraph(
+        "1. INTRODUÇÃO   Texto da introdução."
+        "2. REFERENCIAL TEÓRICO   "
+    )
+    documento.add_paragraph(
+        "2.1 Sistemas embarcados   Texto da subseção com "
+        "ênfase em um trecho."
+    ).runs[-1].italic = True
+    documento.add_paragraph("REFERÊNCIAS")
+    documento.add_paragraph("AUTOR. Título. Manaus, 2026.")
+
+    normalizar_documento(documento)
+
+    assert [p.text for p in documento.paragraphs[5:10]] == [
+        "1. INTRODUÇÃO",
+        "Texto da introdução.",
+        "2. REFERENCIAL TEÓRICO",
+        "2.1 Sistemas embarcados",
+        "Texto da subseção com ênfase em um trecho.",
+    ]
+    assert [p.style.name for p in documento.paragraphs[5:10]] == [
+        "FAMETRO Seção",
+        "FAMETRO Corpo",
+        "FAMETRO Seção",
+        "FAMETRO Subseção",
+        "FAMETRO Corpo",
+    ]
+    assert documento.paragraphs[9].runs[0].italic is True
+    assert documento.paragraphs[10].style.name == "FAMETRO Título de referências"
+    assert documento.paragraphs[11].style.name == "FAMETRO Referência"
+
+
 def test_endpoint_devolve_docx_normalizado():
     cliente = TestClient(app)
     conteudo = bytes_do_documento(documento_exemplo())

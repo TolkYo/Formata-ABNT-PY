@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 import re
 import unicodedata
 
@@ -9,13 +10,23 @@ from docx import Document
 from docx.enum.section import WD_ORIENT
 from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+from docx.text.paragraph import Paragraph
 from docx.shared import Cm, Pt
 
 
 PREFIXO = "FAMETRO"
 SECAO_RE = re.compile(r"^\s*\d+\s*[.)]\s*(?!\d)")
 SUBSECAO_RE = re.compile(r"^\s*\d+\s*[.)]\s*\d+")
+SECAO_EMBUTIDA_RE = re.compile(
+    r"(?P<titulo>(?<!\d)\d+\.\s+"
+    r"[A-ZÀ-ÖØ-Þ][A-ZÀ-ÖØ-Þ0-9 /(),:&–—-]*?)"
+    r"(?:\s{2,}|$)"
+)
+SUBSECAO_COM_CORPO_RE = re.compile(
+    r"^(?P<titulo>\d+\.\d+\.?\s+.+?)(?:\s{2,})(?=\S)"
+)
 
 
 def _texto_comparavel(texto: str) -> str:
@@ -114,6 +125,77 @@ def _limpar_formatacao_direta(paragrafo) -> None:
             trecho.underline = None
 
 
+def _intervalo_sem_espacos(texto: str, inicio: int, fim: int) -> tuple[int, int]:
+    while inicio < fim and texto[inicio].isspace():
+        inicio += 1
+    while fim > inicio and texto[fim - 1].isspace():
+        fim -= 1
+    return inicio, fim
+
+
+def _partes_estruturais(texto: str) -> list[tuple[int, int]]:
+    """Separa títulos numerados colados ao corpo por espaços consecutivos."""
+    secoes = list(SECAO_EMBUTIDA_RE.finditer(texto))
+    if secoes:
+        partes: list[tuple[int, int]] = []
+        cursor = 0
+        for secao in secoes:
+            if secao.start() > cursor:
+                partes.append(_intervalo_sem_espacos(texto, cursor, secao.start()))
+            partes.append(secao.span("titulo"))
+            cursor = secao.end()
+        if cursor < len(texto):
+            partes.append(_intervalo_sem_espacos(texto, cursor, len(texto)))
+        return [parte for parte in partes if parte[0] < parte[1]]
+
+    subsecao = SUBSECAO_COM_CORPO_RE.match(texto)
+    if subsecao:
+        corpo = _intervalo_sem_espacos(texto, subsecao.end(), len(texto))
+        return [subsecao.span("titulo"), corpo]
+    return [(0, len(texto))]
+
+
+def _copiar_trechos(paragrafo, novo: Paragraph, inicio: int, fim: int) -> None:
+    posicao = 0
+    for trecho in paragrafo.runs:
+        texto = trecho.text
+        proxima = posicao + len(texto)
+        parte_inicio = max(inicio, posicao)
+        parte_fim = min(fim, proxima)
+        if parte_inicio < parte_fim:
+            copia = novo.add_run(texto[parte_inicio - posicao : parte_fim - posicao])
+            if trecho._r.rPr is not None:
+                copia._r.insert(0, deepcopy(trecho._r.rPr))
+        posicao = proxima
+
+
+def _separar_blocos_concatenados(documento: Document) -> None:
+    """Transforma título e corpo colados em parágrafos independentes."""
+    for paragrafo in list(documento.paragraphs):
+        texto = paragrafo.text
+        partes = _partes_estruturais(texto)
+        if len(partes) < 2:
+            continue
+
+        # Elementos não textuais não podem ser repartidos com segurança.
+        if paragrafo._p.xpath(
+            ".//w:drawing | .//w:object | .//w:fldChar | "
+            ".//w:footnoteReference | .//w:hyperlink"
+        ):
+            continue
+
+        anterior = paragrafo._p
+        for inicio, fim in partes:
+            elemento = OxmlElement("w:p")
+            if paragrafo._p.pPr is not None:
+                elemento.append(deepcopy(paragrafo._p.pPr))
+            anterior.addnext(elemento)
+            novo = Paragraph(elemento, paragrafo._parent)
+            _copiar_trechos(paragrafo, novo, inicio, fim)
+            anterior = elemento
+        paragrafo._p.getparent().remove(paragrafo._p)
+
+
 def classificar_paragrafos(documento: Document) -> list[str]:
     """Classifica parágrafos pela estrutura textual do artigo."""
     paragrafos = documento.paragraphs
@@ -171,6 +253,7 @@ def classificar_paragrafos(documento: Document) -> list[str]:
 
 def normalizar_documento(documento: Document) -> dict[str, int]:
     """Normaliza o documento em memória e retorna contagens por estilo aplicado."""
+    _separar_blocos_concatenados(documento)
     estilos = _configurar_estilos(documento)
 
     for secao in documento.sections:
