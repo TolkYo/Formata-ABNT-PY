@@ -29,6 +29,10 @@ services:
       CORS_ORIGINS: "*"
       # Link de doacao exibido no site (opcional)
       DOACOES_URL: ""
+      # Doacao via PIX (opcional): QR + copia-e-cola
+      PIX_CHAVE: "${PIX_CHAVE:-}"
+      PIX_NOME: "${PIX_NOME:-}"
+      PIX_CIDADE: "${PIX_CIDADE:-}"
       # Fase 2 — metricas/auditoria
       DATABASE_URL: "postgresql+psycopg://formatador:${POSTGRES_PASSWORD:-formatador}@postgres:5432/formatador"
       ADMIN_API_KEY: "${ADMIN_API_KEY:-troque-esta-chave}"

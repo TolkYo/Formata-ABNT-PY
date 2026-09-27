@@ -80,11 +80,27 @@ async def root():
     return {"mensagem": "API de Formatação ABNT está funcionando!"}
 
 
+def _pix_publico() -> dict | None:
+    """Payload PIX (copia e cola) e QR gerado no servidor, quando configurado."""
+    if not settings.pix_habilitado:
+        return None
+
+    from app.services import pix as pix_service
+
+    payload = pix_service.montar_payload(
+        settings.pix_chave,
+        settings.pix_nome,
+        settings.pix_cidade,
+    )
+    return {"payload": payload, "qr_svg": pix_service.gerar_svg_data_uri(payload)}
+
+
 @app.get("/health", tags=["Publico"])
 async def health():
     return {
         "status": "ok",
         "version": settings.version,
         "doacoes_url": settings.doacoes_url,
+        "pix": _pix_publico(),
         "persistencia": settings.persistencia_habilitada,
     }

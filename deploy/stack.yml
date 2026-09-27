@@ -10,7 +10,8 @@
 #   4) docker stack deploy -c stack.yml formatador
 #
 # Variáveis usadas: POSTGRES_PASSWORD, ADMIN_API_KEY, IP_HASH_SALT, DOACOES_URL,
-# SENTRY_DSN, SENTRY_ENVIRONMENT, SENTRY_TRACES_SAMPLE_RATE, ALERTA_WEBHOOK_URL.
+# PIX_CHAVE, PIX_NOME, PIX_CIDADE, SENTRY_DSN, SENTRY_ENVIRONMENT,
+# SENTRY_TRACES_SAMPLE_RATE, ALERTA_WEBHOOK_URL.
 
 services:
   postgres:
@@ -35,6 +36,9 @@ services:
       MAX_UPLOAD_MB: "20"
       CORS_ORIGINS: "*"
       DOACOES_URL: "${DOACOES_URL:-}"
+      PIX_CHAVE: "${PIX_CHAVE:-}"
+      PIX_NOME: "${PIX_NOME:-}"
+      PIX_CIDADE: "${PIX_CIDADE:-}"
       DATABASE_URL: "postgresql+psycopg://formatador:${POSTGRES_PASSWORD:-formatador}@postgres:5432/formatador"
       ADMIN_API_KEY: "${ADMIN_API_KEY:-troque-esta-chave}"
       IP_HASH_SALT: "${IP_HASH_SALT:-troque-este-sal}"

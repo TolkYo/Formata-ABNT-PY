@@ -28,6 +28,8 @@
         erro: null,
         resultado: null,
         doacaoUrl: null,
+        pix: null,
+        copiado: false,
         limiteMb: LIMITE_PADRAO_MB,
         ano: new Date().getFullYear(),
         regrasAplicadas: [
@@ -59,6 +61,9 @@
       ApiABNT.info().then(function (dados) {
         if (dados && dados.doacoes_url) {
           self.doacaoUrl = dados.doacoes_url;
+        }
+        if (dados && dados.pix && dados.pix.payload) {
+          self.pix = dados.pix;
         }
       });
     },
@@ -144,6 +149,34 @@
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+      },
+
+      copiarPix: function () {
+        if (!this.pix) return;
+        var self = this;
+        var texto = this.pix.payload;
+
+        function marcarCopiado() {
+          self.copiado = true;
+          setTimeout(function () { self.copiado = false; }, 2000);
+        }
+
+        function copiarFallback() {
+          var campo = self.$refs.pixInput;
+          if (!campo) return;
+          campo.focus();
+          campo.select();
+          try {
+            document.execCommand('copy');
+            marcarCopiado();
+          } catch (e) { /* copia manual pelo usuario */ }
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(texto).then(marcarCopiado, copiarFallback);
+        } else {
+          copiarFallback();
+        }
       },
     },
   }).mount('#app');

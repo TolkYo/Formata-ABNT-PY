@@ -19,7 +19,10 @@
         </a>
         <div class="ms-auto d-flex align-items-center gap-3">
           <a class="btn btn-outline-light btn-sm" href="#como-funciona">Como funciona</a>
-          <a v-if="doacaoUrl" class="btn btn-warning btn-sm" :href="doacaoUrl"
+          <a v-if="pix" class="btn btn-warning btn-sm" href="#apoiar">
+            <i class="bi bi-heart me-1"></i>Apoiar o projeto
+          </a>
+          <a v-else-if="doacaoUrl" class="btn btn-warning btn-sm" :href="doacaoUrl"
              target="_blank" rel="noopener">
             <i class="bi bi-heart me-1"></i>Apoiar o projeto
           </a>
@@ -216,13 +219,38 @@
           <div class="card-body text-center p-4">
             <i class="bi bi-heart-fill display-6 text-danger"></i>
             <h2 class="h4 mt-2">Apoie este projeto</h2>
-            <p class="text-muted mb-3">
+            <p class="text-muted mb-4">
               Esta ferramenta é <strong>open source</strong> e de <strong>uso gratuito e ilimitado</strong>.
               Se ela te ajudou, considere fazer uma doação para cobrir os custos de servidor
               e manter o projeto no ar. A doação é <strong>voluntária</strong> e não dá direito a
               nenhuma funcionalidade extra — o uso já é livre para todos.
             </p>
-            <a v-if="doacaoUrl" class="btn btn-danger" :href="doacaoUrl"
+
+            <div v-if="pix" class="row justify-content-center align-items-center g-4 text-start">
+              <div v-if="pix.qr_svg" class="col-auto text-center">
+                <img :src="pix.qr_svg" alt="QR Code PIX para doação" class="pix-qr img-fluid">
+                <p class="text-muted small mb-0 mt-1">Aponte a câmera do banco</p>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small text-muted mb-1" for="pix-copia-cola">
+                  PIX copia e cola
+                </label>
+                <div class="input-group">
+                  <input id="pix-copia-cola" ref="pixInput" type="text"
+                         class="form-control font-monospace small" :value="pix.payload"
+                         readonly @focus="$event.target.select()">
+                  <button class="btn btn-danger" type="button" @click="copiarPix">
+                    <i class="bi me-1" :class="copiado ? 'bi-check-lg' : 'bi-clipboard'"></i>
+                    {{ copiado ? 'Copiado!' : 'Copiar' }}
+                  </button>
+                </div>
+                <p class="text-muted small mb-0 mt-2">
+                  Escaneie o QR ou copie o código e pague no app do seu banco. Qualquer valor.
+                </p>
+              </div>
+            </div>
+
+            <a v-else-if="doacaoUrl" class="btn btn-danger" :href="doacaoUrl"
                target="_blank" rel="noopener">
               <i class="bi bi-heart me-1"></i>Fazer uma doação
             </a>

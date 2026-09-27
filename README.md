@@ -167,10 +167,55 @@ e `/health` para o backend). No dev com o front servido fora do nginx, defina
 ## 9. Apoiar o projeto (doações)
 
 Este é um projeto **open source**, de **uso gratuito e ilimitado**, sustentado por
-**doações voluntárias**. Para exibir o botão de doação no site, defina a variável
-de ambiente `DOACOES_URL` (ex.: `https://github.com/sponsors/seu-usuario`); o valor
-é exposto em `GET /health` e lido pelo frontend. Doações são **voluntárias** e **não**
-concedem nenhum benefício funcional.
+**doações voluntárias**. Doações são **voluntárias** e **não** concedem nenhum
+benefício funcional.
+
+Há dois canais, ambos lidos do `GET /health` pelo frontend:
+
+1. **Link externo** — defina `DOACOES_URL` (ex.: uma página de doação/vaquinha da
+   LivePix, ou `https://github.com/sponsors/seu-usuario`).
+2. **PIX** — defina `PIX_CHAVE`, `PIX_NOME` e `PIX_CIDADE`; o site exibe **QR Code**
+   + **copia e cola**. O QR é gerado **no servidor** (biblioteca `segno`), sem enviar
+   o payload a serviços de terceiros.
+
+```bash
+PIX_CHAVE=<chave PIX>
+PIX_NOME=<nome do recebedor>   # até 25 caracteres
+PIX_CIDADE=<cidade>            # até 15 caracteres
+```
+
+> **Privacidade:** use uma **chave aleatória (EVP)** em vez de CPF/telefone/e-mail
+> — assim o payload (que é público, por natureza) não revela dados pessoais. A chave
+> fica apenas no servidor (`.env`), nunca no código do frontend. PIX é *receive-only*:
+> expor a chave não permite saques. O campo "nome do recebedor" é obrigatório no
+> padrão BR Code; para ocultá-lo, use um nome fantasia (ex.: via CNPJ/MEI).
+
+Se `PIX_*` estiver definido, ele tem prioridade sobre `DOACOES_URL`.
+
+### LivePix (link externo, sem expor seus dados)
+
+A [LivePix](https://livepix.gg) é uma plataforma brasileira que **intermedia** as
+transações: seus dados bancários e pessoais não são exibidos ao doador. É a forma mais
+simples de receber **sem escrever código** — basta usar a página de doação/vaquinha
+como link externo:
+
+```bash
+DOACOES_URL=https://livepix.gg/<seu-usuario>
+# Não defina PIX_* se quiser que o link seja exibido (PIX_* tem prioridade).
+```
+
+- **Taxas** (consulte os valores atuais em `https://livepix.gg/taxas`): PIX 5%,
+  cartão 7%, internacional 7%.
+- **Saque** via PIX 24/7; 3 saques grátis por mês, depois taxa por saque.
+- Recursos extras: assinaturas recorrentes, cartão de crédito, vaquinhas com meta e
+  integração com OBS/StreamElements/Streamlabs.
+- A LivePix também oferece uma **API v2** (OAuth2, `https://docs.livepix.gg/api`) com
+  criação de pagamentos e **webhooks** — integração que muda as regras atuais do
+  sistema (hoje as doações acontecem **fora** do sistema) e fica para a Fase 3.
+
+> **Privacidade vs. taxa:** o PIX próprio (seção acima) tem **0%** de taxa, mas exige
+> um nome de recebedor visível no BR Code; a LivePix resolve a privacidade por
+> intermediação, cobrando a taxa da plataforma.
 
 ---
 

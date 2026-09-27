@@ -30,6 +30,10 @@ class Settings:
         self.version: str = os.getenv("APP_VERSION", "1.0.0")
         self.max_upload_mb: int = _int_env("MAX_UPLOAD_MB", 20)
         self.doacoes_url: str | None = os.getenv("DOACOES_URL") or None
+        # Doacao via PIX (BR Code estatico). A chave fica so no servidor.
+        self.pix_chave: str | None = os.getenv("PIX_CHAVE") or None
+        self.pix_nome: str = os.getenv("PIX_NOME", "").strip()
+        self.pix_cidade: str = os.getenv("PIX_CIDADE", "").strip()
         self.cors_origins: list[str] = [
             origem.strip()
             for origem in os.getenv("CORS_ORIGINS", "*").split(",")
@@ -59,6 +63,10 @@ class Settings:
     @property
     def max_upload_bytes(self) -> int:
         return self.max_upload_mb * 1024 * 1024
+
+    @property
+    def pix_habilitado(self) -> bool:
+        return bool(self.pix_chave and self.pix_nome and self.pix_cidade)
 
     @property
     def persistencia_habilitada(self) -> bool:
