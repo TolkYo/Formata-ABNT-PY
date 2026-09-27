@@ -139,14 +139,18 @@
 
               <h2 class="h5 mt-4 mb-3">{{ fametroSelecionado ? '3' : '4' }}. Processar</h2>
               <button class="btn btn-success btn-lg w-100" type="button"
-                      :disabled="!arquivo || status === 'enviando'" @click="formatar">
-                <span v-if="status === 'enviando'" class="spinner-border spinner-border-sm me-2"></span>
-                {{ status === 'enviando' ? 'Processando...' : textoBotao }}
+                      :disabled="!arquivo || ocupado" @click="formatar">
+                <span v-if="ocupado" class="spinner-border spinner-border-sm me-2"></span>
+                {{ ocupado ? textoStatus : textoBotao }}
               </button>
 
-              <div v-if="status === 'enviando'" class="progress mt-3" role="progressbar">
+              <div v-if="ocupado" class="progress mt-3" role="progressbar">
                 <div class="progress-bar progress-bar-striped progress-bar-animated"
                      :style="{ width: progresso + '%' }">{{ progresso }}%</div>
+              </div>
+
+              <div v-if="ocupado && mensagemFila" class="alert alert-info mt-3 mb-0" role="status">
+                <i class="bi bi-hourglass-split me-1"></i>{{ mensagemFila }}
               </div>
 
               <div v-if="erro" class="alert alert-danger mt-3 mb-0" role="alert">
@@ -216,7 +220,7 @@
               </button>
             </h3>
             <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-              <div class="accordion-body">Não. O arquivo é processado em memória e descartado após a resposta.</div>
+              <div class="accordion-body">O arquivo fica temporariamente em um volume privado durante a fila. A entrada é apagada após o processamento e o resultado após o download ou em até 30 minutos.</div>
             </div>
           </div>
           <div class="accordion-item">

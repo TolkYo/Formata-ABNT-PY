@@ -110,6 +110,103 @@ paths:
         "400":
           description: Documento invalido
 
+  /formatar/fametro:
+    post:
+      tags: [Publico]
+      summary: Normalizar artigo .docx no padrao FAMETRO
+      description: >
+        Reconhece a estrutura textual do artigo, aplica estilos semanticos
+        FAMETRO e devolve o documento normalizado sem alterar seu conteudo.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        "200":
+          description: Arquivo normalizado
+          headers:
+            Content-Disposition:
+              schema: { type: string }
+          content:
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+              schema: { type: string, format: binary }
+        "400":
+          description: Documento invalido
+        "413":
+          description: Arquivo acima do limite
+        "429":
+          description: Rate limit tecnico
+
+  /jobs/formatar:
+    post:
+      tags: [Publico]
+      summary: Enfileirar formatacao de documento
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, modo]
+              properties:
+                file: { type: string, format: binary }
+                modo: { type: string, enum: [abnt, fametro] }
+                dados: { type: string, description: JSON da capa }
+                incluir_capa: { type: boolean, default: false }
+                incluir_sumario: { type: boolean, default: false }
+                validar: { type: boolean, default: false }
+      responses:
+        "202":
+          description: Documento aceito na fila
+        "400":
+          description: Documento ou opcoes invalidos
+        "413":
+          description: Arquivo acima do limite
+        "429":
+          description: Fila cheia ou rate limit tecnico
+        "503":
+          description: Fila temporariamente indisponivel
+
+  /jobs/{job_id}:
+    get:
+      tags: [Publico]
+      summary: Consultar estado e posicao do trabalho
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema: { type: string, pattern: "^[a-f0-9]{32}$" }
+      responses:
+        "200":
+          description: Estado atual do trabalho
+        "404":
+          description: Trabalho inexistente ou expirado
+
+  /jobs/{job_id}/download:
+    get:
+      tags: [Publico]
+      summary: Baixar documento concluido
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema: { type: string, pattern: "^[a-f0-9]{32}$" }
+      responses:
+        "200":
+          description: Documento formatado; removido apos o envio
+          content:
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+              schema: { type: string, format: binary }
+        "409":
+          description: Trabalho ainda nao concluido
+        "404":
+          description: Trabalho inexistente ou expirado
+
   /admin/metricas/uso:
     get:
       tags: [Admin]

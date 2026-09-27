@@ -9,6 +9,7 @@ from app.core import observabilidade
 from app.core.config import settings
 from app.routers.admin import router as admin_router
 from app.routers.formatar import router as formatar_router
+from app.routers.jobs import router as jobs_router
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,17 @@ async def _loop_alertas() -> None:
         await asyncio.sleep(intervalo)
 
 
+async def _loop_limpeza_jobs() -> None:
+    from app.services import fila_documentos
+
+    while True:
+        try:
+            await asyncio.to_thread(fila_documentos.limpar_expirados)
+        except Exception as erro:  # pragma: no cover - depende do volume
+            logger.warning("Falha ao limpar documentos expirados: %s", erro)
+        await asyncio.sleep(300)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     observabilidade.init_sentry()
@@ -39,6 +51,7 @@ async def lifespan(app: FastAPI):
             logger.warning("Falha ao criar tabelas automaticamente: %s", erro)
 
     tarefa_alertas: asyncio.Task | None = None
+    tarefa_limpeza: asyncio.Task | None = None
     if settings.alertas_ativos:
         tarefa_alertas = asyncio.create_task(_loop_alertas())
         logger.info(
@@ -47,6 +60,10 @@ async def lifespan(app: FastAPI):
             settings.alerta_janela_min,
         )
 
+    if settings.fila_habilitada:
+        tarefa_limpeza = asyncio.create_task(_loop_limpeza_jobs())
+        logger.info("Limpeza de documentos temporarios ativa.")
+
     try:
         yield
     finally:
@@ -54,6 +71,10 @@ async def lifespan(app: FastAPI):
             tarefa_alertas.cancel()
             with suppress(asyncio.CancelledError):
                 await tarefa_alertas
+        if tarefa_limpeza is not None:
+            tarefa_limpeza.cancel()
+            with suppress(asyncio.CancelledError):
+                await tarefa_limpeza
 
 
 app = FastAPI(
@@ -72,6 +93,7 @@ app.add_middleware(
 )
 
 app.include_router(formatar_router)
+app.include_router(jobs_router)
 app.include_router(admin_router)
 
 
@@ -97,10 +119,16 @@ def _pix_publico() -> dict | None:
 
 @app.get("/health", tags=["Publico"])
 async def health():
+    fila = {"habilitada": settings.fila_habilitada, "disponivel": False}
+    if settings.fila_habilitada:
+        from app.services import fila_documentos
+
+        fila["disponivel"] = await asyncio.to_thread(fila_documentos.fila_disponivel)
     return {
         "status": "ok",
         "version": settings.version,
         "doacoes_url": settings.doacoes_url,
         "pix": _pix_publico(),
         "persistencia": settings.persistencia_habilitada,
+        "fila": fila,
     }

@@ -43,7 +43,7 @@ def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "desconhecido"
 
 
-async def _ler_docx(file: UploadFile) -> tuple[Document, int]:
+def _ler_docx(file: UploadFile) -> tuple[Document, int]:
     nome = (file.filename or "").lower()
 
     if nome.endswith(".doc") and not nome.endswith(".docx"):
@@ -60,7 +60,7 @@ async def _ler_docx(file: UploadFile) -> tuple[Document, int]:
             detail="Apenas arquivos .docx são permitidos.",
         )
 
-    conteudo = await file.read()
+    conteudo = file.file.read()
     if not conteudo:
         raise HTTPException(status_code=400, detail="O arquivo enviado está vazio.")
     if len(conteudo) > settings.max_upload_bytes:
@@ -104,7 +104,7 @@ def _content_disposition(nome_arquivo: str) -> str:
 
 
 @router.post("/formatar")
-async def formatar_documento(
+def formatar_documento(
     request: Request,
     file: UploadFile = File(...),
     dados: Optional[str] = Form(None),
@@ -123,7 +123,7 @@ async def formatar_documento(
     resultado = "erro"
 
     try:
-        doc, tamanho = await _ler_docx(file)
+        doc, tamanho = _ler_docx(file)
         dados_capa = _parse_dados(dados)
 
         if validar:
@@ -174,9 +174,9 @@ async def formatar_documento(
 
 
 @router.post("/formatar/validar")
-async def validar_documento(file: UploadFile = File(...)):
+def validar_documento(file: UploadFile = File(...)):
     """Valida a estrutura mínima do documento sem formatar."""
-    doc, _ = await _ler_docx(file)
+    doc, _ = _ler_docx(file)
     faltantes = validar_estrutura(doc)
     return {"valido": not faltantes, "secoes_ausentes": faltantes}
 
@@ -198,7 +198,7 @@ async def validar_documento(file: UploadFile = File(...)):
         413: {"description": "Arquivo acima do limite permitido"},
     },
 )
-async def normalizar_documento_fametro(
+def normalizar_documento_fametro(
     request: Request,
     file: UploadFile = File(...),
 ):
@@ -209,7 +209,7 @@ async def normalizar_documento_fametro(
     resultado = "erro"
 
     try:
-        doc, tamanho = await _ler_docx(file)
+        doc, tamanho = _ler_docx(file)
         normalizar_documento(doc)
 
         output = io.BytesIO()

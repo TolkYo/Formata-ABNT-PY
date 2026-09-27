@@ -14,6 +14,24 @@
 # SENTRY_TRACES_SAMPLE_RATE, ALERTA_WEBHOOK_URL.
 
 services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redis-data:/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 160M
+
   postgres:
     image: postgres:16-alpine
     environment:
@@ -47,10 +65,49 @@ services:
       SENTRY_ENVIRONMENT: "${SENTRY_ENVIRONMENT:-production}"
       SENTRY_TRACES_SAMPLE_RATE: "${SENTRY_TRACES_SAMPLE_RATE:-0.0}"
       ALERTA_WEBHOOK_URL: "${ALERTA_WEBHOOK_URL:-}"
+      FILA_HABILITADA: "true"
+      REDIS_URL: "redis://redis:6379/0"
+      FILA_NOME: "documentos"
+      FILA_MAX_JOBS: "20"
+      JOBS_DIR: "/data/jobs"
+      JOB_TIMEOUT_SEGUNDOS: "180"
+      JOB_TTL_SEGUNDOS: "900"
+      JOB_FILA_TTL_SEGUNDOS: "1800"
+    volumes:
+      - jobs-data:/data/jobs
     networks:
       - internal
     deploy:
       replicas: 1
+      resources:
+        limits:
+          memory: 512M
+
+  worker:
+    image: formatador-api:latest
+    command: ["rq", "worker", "--url", "redis://redis:6379/0", "--serializer", "json", "--max-jobs", "100", "documentos"]
+    environment:
+      REDIS_URL: "redis://redis:6379/0"
+      FILA_HABILITADA: "true"
+      FILA_NOME: "documentos"
+      JOBS_DIR: "/data/jobs"
+      JOB_TTL_SEGUNDOS: "900"
+      JOB_FILA_TTL_SEGUNDOS: "1800"
+      DATABASE_URL: "postgresql+psycopg://formatador:${POSTGRES_PASSWORD:-formatador}@postgres:5432/formatador"
+      IP_HASH_SALT: "${IP_HASH_SALT:-troque-este-sal}"
+    volumes:
+      - jobs-data:/data/jobs
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "python", "-c", "from redis import Redis; Redis.from_url('redis://redis:6379/0').ping()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
       resources:
         limits:
           memory: 512M
@@ -79,3 +136,5 @@ networks:
 
 volumes:
   postgres-data:
+  redis-data:
+  jobs-data:

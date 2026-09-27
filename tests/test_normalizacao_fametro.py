@@ -1,10 +1,16 @@
 import io
+import inspect
 
 from docx import Document
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.routers.formatar import DOCX_MIME
+from app.routers.formatar import (
+    DOCX_MIME,
+    formatar_documento,
+    normalizar_documento_fametro,
+    validar_documento,
+)
 from app.services.normalizacao_fametro import normalizar_documento
 
 
@@ -135,3 +141,28 @@ def test_openapi_documenta_upload_e_download_docx():
 
     assert "multipart/form-data" in operacao["requestBody"]["content"]
     assert DOCX_MIME in operacao["responses"]["200"]["content"]
+
+
+def test_rotas_de_docx_sao_sincronas_para_nao_bloquear_event_loop():
+    assert not inspect.iscoroutinefunction(formatar_documento)
+    assert not inspect.iscoroutinefunction(validar_documento)
+    assert not inspect.iscoroutinefunction(normalizar_documento_fametro)
+
+
+def test_endpoint_abnt_e_validacao_continuam_funcionando():
+    cliente = TestClient(app)
+    conteudo = bytes_do_documento(documento_exemplo())
+
+    resposta_formatacao = cliente.post(
+        "/formatar",
+        files={"file": ("artigo.docx", conteudo, DOCX_MIME)},
+    )
+    resposta_validacao = cliente.post(
+        "/formatar/validar",
+        files={"file": ("artigo.docx", conteudo, DOCX_MIME)},
+    )
+
+    assert resposta_formatacao.status_code == 200
+    assert Document(io.BytesIO(resposta_formatacao.content)).paragraphs
+    assert resposta_validacao.status_code == 200
+    assert "valido" in resposta_validacao.json()

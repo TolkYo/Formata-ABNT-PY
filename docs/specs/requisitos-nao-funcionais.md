@@ -28,7 +28,7 @@
 ## Privacidade e LGPD
 | ID | Requisito | Metrica/Alvo |
 |----|-----------|--------------|
-| RNF020 | Conteudo de documentos | Nunca persistir; processamento 100% em memoria |
+| RNF020 | Conteudo de documentos | Persistencia temporaria em volume privado, sem banco/Redis, com exclusao no download ou em ate 30 min |
 | RNF021 | Metadados | Minimos e anonimizados (IP apenas em hash) |
 | RNF022 | Retencao | Logs e eventos com retencao curta e configuravel |
 | RNF023 | Base legal | Aviso de privacidade e transparencia (projeto open source) |

@@ -68,6 +68,55 @@
     });
   }
 
+  function enfileirar(payload, onProgress) {
+    return new Promise(function (resolve, reject) {
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', API_BASE + '/jobs/formatar');
+      xhr.responseType = 'json';
+      xhr.upload.onprogress = function (evento) {
+        if (evento.lengthComputable && typeof onProgress === 'function') {
+          onProgress(Math.min(95, Math.round((evento.loaded / evento.total) * 95)));
+        }
+      };
+      xhr.onload = function () {
+        if (xhr.status === 202) {
+          resolve(xhr.response || {});
+          return;
+        }
+        var corpo = xhr.response || {};
+        reject({ status: xhr.status, mensagem: corpo.detail || 'Falha ao entrar na fila.' });
+      };
+      xhr.onerror = function () {
+        reject({ status: 0, mensagem: 'Nao foi possivel conectar ao servidor.' });
+      };
+      xhr.send(payload);
+    });
+  }
+
+  function consultarJob(id) {
+    return fetch(API_BASE + '/jobs/' + encodeURIComponent(id)).then(function (resposta) {
+      return resposta.json().then(function (corpo) {
+        if (!resposta.ok) throw { status: resposta.status, mensagem: corpo.detail };
+        return corpo;
+      });
+    });
+  }
+
+  function baixarJob(url, nomePadrao) {
+    return fetch(API_BASE + url).then(function (resposta) {
+      if (!resposta.ok) {
+        return resposta.json().then(function (corpo) {
+          throw { status: resposta.status, mensagem: corpo.detail || 'Falha no download.' };
+        });
+      }
+      var disposicao = resposta.headers.get('Content-Disposition') || '';
+      var achado = /filename="?([^";]+)"?/.exec(disposicao);
+      return resposta.blob().then(function (blob) {
+        return { blob: blob, nome: achado ? achado[1] : nomePadrao };
+      });
+    });
+  }
+
   function formatar(payload, onProgress) {
     return enviarDocumento('/formatar', payload, 'documento_formatado.docx', onProgress);
   }
@@ -102,6 +151,9 @@
     base: API_BASE,
     formatar: formatar,
     normalizarFametro: normalizarFametro,
+    enfileirar: enfileirar,
+    consultarJob: consultarJob,
+    baixarJob: baixarJob,
     validar: validar,
     info: info,
   };

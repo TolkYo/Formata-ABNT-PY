@@ -60,6 +60,16 @@ class Settings:
         self.alerta_volume_max: int = _int_env("ALERTA_VOLUME_MAX", 0)
         self.alerta_cooldown_min: int = _int_env("ALERTA_COOLDOWN_MIN", 60)
 
+        # Fase 3 — fila de processamento de documentos
+        self.fila_habilitada: bool = _bool_env("FILA_HABILITADA", False)
+        self.redis_url: str = os.getenv("REDIS_URL", "redis://redis:6379/0")
+        self.fila_nome: str = os.getenv("FILA_NOME", "documentos")
+        self.fila_max_jobs: int = _int_env("FILA_MAX_JOBS", 20)
+        self.job_timeout_segundos: int = _int_env("JOB_TIMEOUT_SEGUNDOS", 180)
+        self.job_ttl_segundos: int = _int_env("JOB_TTL_SEGUNDOS", 900)
+        self.job_fila_ttl_segundos: int = _int_env("JOB_FILA_TTL_SEGUNDOS", 1800)
+        self.jobs_dir: str = os.getenv("JOBS_DIR", "/data/jobs")
+
     @property
     def max_upload_bytes(self) -> int:
         return self.max_upload_mb * 1024 * 1024

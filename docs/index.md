@@ -21,6 +21,7 @@ Contratos de **o que construir** (visao, requisitos, regras, dados, API, UX, roa
 | Arquivo | Conteudo |
 |---------|----------|
 | [../README.md](../README.md) | Como usar a API (estado atual do codigo) |
+| [operacao-fila.md](operacao-fila.md) | Fila, retencao, deploy, verificacao e rollback |
 
 ## Documentacao de implementacao — `/docs/` (a gerar)
 A skill `gerador-documentacao` consome estas specs e produz a documentacao de
@@ -42,4 +43,4 @@ A skill `gerador-documentacao` consome estas specs e produz a documentacao de
 - **Fase 2**: admin minimo (metricas/auditoria) e observabilidade.
 - **Fase 3**: fila, SEO e automacao de doacoes.
 - **Canal**: acesso somente pelo site; sem API publica para terceiros.
-- **Privacidade**: documentos nunca sao persistidos; apenas metadados anonimos.
+- **Privacidade**: documentos ficam apenas em volume temporario privado e expiram em ate 30 minutos; metadados anonimos ficam separados.

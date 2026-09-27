@@ -19,10 +19,16 @@ A API fica disponível em `http://127.0.0.1:8000`.
 | POST   | `/formatar`         | Formata um `.docx` e devolve o arquivo      |
 | POST   | `/formatar/validar` | Valida a estrutura mínima sem formatar      |
 | POST   | `/formatar/fametro` | Normaliza um artigo no padrão FAMETRO       |
+| POST   | `/jobs/formatar`     | Enfileira uma formatação e retorna `202`    |
+| GET    | `/jobs/{id}`         | Consulta posição e estado do processamento  |
+| GET    | `/jobs/{id}/download` | Baixa e remove o resultado concluído       |
 | GET    | `/admin/metricas/uso` | Métricas de uso (requer `X-Admin-Key`, F2) |
 | GET    | `/admin/auditoria`  | Trilha de auditoria (requer `X-Admin-Key`, F2) |
 | GET    | `/docs`             | Documentação interativa (Swagger UI)        |
 | GET    | `/redoc`            | Documentação alternativa (ReDoc)            |
+
+O frontend público utiliza a fila. Operação, retenção, deploy e rollback estão
+documentados em [`docs/operacao-fila.md`](docs/operacao-fila.md).
 
 ---
 

@@ -25,6 +25,9 @@
           ano: '',
         },
         status: 'idle',
+        jobId: null,
+        mensagemFila: '',
+        posicaoFila: null,
         progresso: 0,
         erro: null,
         resultado: null,
@@ -53,6 +56,18 @@
       },
       textoBotao: function () {
         return this.fametroSelecionado ? 'Normalizar artigo FAMETRO' : 'Formatar documento';
+      },
+      ocupado: function () {
+        return ['enviando', 'na_fila', 'processando', 'baixando'].indexOf(this.status) !== -1;
+      },
+      textoStatus: function () {
+        if (this.status === 'enviando') return 'Enviando documento...';
+        if (this.status === 'na_fila') {
+          return this.posicaoFila ? 'Posicao na fila: ' + this.posicaoFila : 'Aguardando na fila...';
+        }
+        if (this.status === 'processando') return 'Formatando documento...';
+        if (this.status === 'baixando') return 'Preparando download...';
+        return '';
       },
       mensagemSucesso: function () {
         return this.fametroSelecionado
@@ -132,43 +147,79 @@
         this.resultado = null;
         this.erro = null;
         this.status = 'idle';
+        this.jobId = null;
+        this.mensagemFila = '';
+        this.posicaoFila = null;
       },
 
       formatar: function () {
-        if (!this.arquivo || this.status === 'enviando') return;
+        if (!this.arquivo || this.ocupado) return;
         var self = this;
         this.status = 'enviando';
         this.progresso = 0;
         this.erro = null;
         this.resultado = null;
+        this.mensagemFila = '';
+        this.posicaoFila = null;
 
         var atualizarProgresso = function (percentual) {
           self.progresso = percentual;
         };
-        var requisicao;
 
-        if (this.fametroSelecionado) {
-          requisicao = ApiABNT.normalizarFametro(this.arquivo, atualizarProgresso);
-        } else {
-          var form = new FormData();
-          form.append('file', this.arquivo);
-          form.append('incluir_capa', this.opcoes.incluir_capa);
-          form.append('incluir_sumario', this.opcoes.incluir_sumario);
-          form.append('validar', this.opcoes.validar);
-          if (this.opcoes.incluir_capa) {
-            form.append('dados', JSON.stringify(this.capa));
-          }
-          requisicao = ApiABNT.formatar(form, atualizarProgresso);
-        }
+        var form = new FormData();
+        form.append('file', this.arquivo);
+        form.append('modo', this.fametroSelecionado ? 'fametro' : 'abnt');
+        form.append('incluir_capa', this.opcoes.incluir_capa);
+        form.append('incluir_sumario', this.opcoes.incluir_sumario);
+        form.append('validar', this.opcoes.validar);
+        if (this.opcoes.incluir_capa) form.append('dados', JSON.stringify(this.capa));
 
-        requisicao.then(function (resposta) {
-          var url = URL.createObjectURL(resposta.blob);
-          self.resultado = { nome: resposta.nome, url: url };
-          self.status = 'idle';
-          self.baixar();
+        ApiABNT.enfileirar(form, atualizarProgresso).then(function (job) {
+          self.jobId = job.id;
+          self.status = 'na_fila';
+          self.progresso = 100;
+          self.posicaoFila = job.posicao;
+          self.mensagemFila = 'Documento recebido. Aguarde o processamento.';
+          self.acompanharJob();
         }).catch(function (falha) {
           self.status = 'idle';
-          self.erro = falha.mensagem || 'Não foi possível formatar o documento.';
+          self.erro = falha.mensagem || 'Não foi possível entrar na fila.';
+        });
+      },
+
+      acompanharJob: function () {
+        var self = this;
+        if (!this.jobId) return;
+        ApiABNT.consultarJob(this.jobId).then(function (job) {
+          self.status = job.status;
+          self.posicaoFila = job.posicao;
+          self.mensagemFila = job.mensagem || '';
+          if (job.status === 'concluido') {
+            self.status = 'baixando';
+            return ApiABNT.baixarJob(job.download_url, job.nome_saida).then(function (resposta) {
+              self.resultado = {
+                nome: resposta.nome,
+                url: URL.createObjectURL(resposta.blob),
+              };
+              self.status = 'idle';
+              self.jobId = null;
+              self.baixar();
+            });
+          }
+          if (job.status === 'erro' || job.status === 'cancelado') {
+            self.status = 'idle';
+            self.erro = job.mensagem || 'Não foi possível processar o documento.';
+            return;
+          }
+          setTimeout(function () { self.acompanharJob(); }, 1000);
+        }).catch(function (falha) {
+          if (falha.status === 0 || falha.status === 429 || falha.status === 503) {
+            self.mensagemFila = 'Servidor ocupado. Tentando consultar novamente...';
+            setTimeout(function () { self.acompanharJob(); }, 2000);
+            return;
+          }
+          self.status = 'idle';
+          self.erro = falha.mensagem || 'Não foi possível consultar a fila.';
         });
       },
 
