@@ -70,20 +70,12 @@
 
               <h2 class="h5 mt-4 mb-3">2. Escolha o padrão</h2>
               <div class="row g-2" role="radiogroup" aria-label="Padrão de formatação">
-                <div class="col-md-6">
+                <div class="col-12">
                   <input id="modo-abnt" class="btn-check" type="radio" value="abnt"
                          v-model="modoFormatacao" autocomplete="off">
                   <label class="btn btn-outline-primary w-100 h-100 p-3 text-start" for="modo-abnt">
                     <strong class="d-block"><i class="bi bi-file-text me-1"></i>ABNT geral</strong>
                     <small>Formatação tradicional, com opções de capa e sumário.</small>
-                  </label>
-                </div>
-                <div class="col-md-6">
-                  <input id="modo-fametro" class="btn-check" type="radio" value="fametro"
-                         v-model="modoFormatacao" autocomplete="off">
-                  <label class="btn btn-outline-primary w-100 h-100 p-3 text-start" for="modo-fametro">
-                    <strong class="d-block"><i class="bi bi-journal-check me-1"></i>Artigo FAMETRO</strong>
-                    <small>Normaliza automaticamente a estrutura do modelo institucional.</small>
                   </label>
                 </div>
               </div>
