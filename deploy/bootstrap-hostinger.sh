@@ -15,6 +15,7 @@
 #   STACK_NAME   (default: formatador)
 #   DOMAIN       (default: lido de deploy/.env ou formatabnt.com.br)
 #   ACME_EMAIL   (default: lido de deploy/.env; sem ele o TLS e pulado)
+#   SWAP_SIZE_GB (default: 8)
 #
 set -euo pipefail
 
@@ -80,10 +81,27 @@ else
     log "Swarm ja ativo"
 fi
 
-# --- 4. Ajuste de kernel para o Redis ---------------------------------------
-log "Aplicando vm.overcommit_memory=1"
-printf 'vm.overcommit_memory = 1\n' > "$SYSCTL_FILE"
+# --- 4. Ajuste de kernel (Redis) + swap -------------------------------------
+log "Aplicando vm.overcommit_memory=1 e vm.swappiness=10"
+printf 'vm.overcommit_memory = 1\nvm.swappiness = 10\n' > "$SYSCTL_FILE"
 sysctl --system >/dev/null
+
+# --- 4b. Swap de 8 GB (rede de seguranca contra OOM) ------------------------
+SWAPFILE=/swapfile
+SWAP_SIZE_GB="${SWAP_SIZE_GB:-8}"
+if swapon --show=NAME --noheadings 2>/dev/null | grep -qx "$SWAPFILE"; then
+    log "Swap ja ativo em $SWAPFILE"
+else
+    log "Configurando swap de ${SWAP_SIZE_GB} GB em $SWAPFILE"
+    if [ ! -f "$SWAPFILE" ]; then
+        fallocate -l "${SWAP_SIZE_GB}G" "$SWAPFILE" 2>/dev/null \
+            || dd if=/dev/zero of="$SWAPFILE" bs=1M count=$((SWAP_SIZE_GB * 1024)) status=none
+        chmod 600 "$SWAPFILE"
+        mkswap "$SWAPFILE" >/dev/null
+    fi
+    swapon "$SWAPFILE"
+fi
+grep -qs "^$SWAPFILE " /etc/fstab || echo "$SWAPFILE none swap sw 0 0" >> /etc/fstab
 
 # --- 5. Firewall UFW ---------------------------------------------------------
 log "Configurando UFW (22, 80, 443)"
