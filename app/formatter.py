@@ -32,10 +32,10 @@ def formatar_abnt(doc: Document):
             run.font.size = Pt(12)
 
 
-def _nivel_titulo(paragrafo) -> int:
-    """Retorna 1, 2 ou 3 conforme o nível do estilo de título, ou 0 se não for título."""
-    nome = (paragrafo.style.name or '').lower()
-    sid = (paragrafo.style.style_id or '').lower()
+def _nivel_por_nomes(nome: str, estilo_id: str) -> int:
+    """Retorna 1, 2 ou 3 conforme nome/id do estilo de título, ou 0 se não for título."""
+    nome = (nome or '').lower()
+    sid = (estilo_id or '').lower()
     if 'heading 1' in nome or 'título 1' in nome or 'titulo 1' in nome or sid == 'heading1':
         return 1
     if 'heading 2' in nome or 'título 2' in nome or 'titulo 2' in nome or sid == 'heading2':
@@ -45,13 +45,35 @@ def _nivel_titulo(paragrafo) -> int:
     return 0
 
 
+def _nivel_titulo(paragrafo) -> int:
+    """Retorna o nível (1-3) do estilo do parágrafo, ou 0 se não for título."""
+    estilo = paragrafo.style
+    if estilo is None:
+        return 0
+    return _nivel_por_nomes(estilo.name, estilo.style_id)
+
+
+def _mapa_niveis(doc: Document) -> dict:
+    """Mapeia style_id -> nível de título, resolvendo cada estilo uma única vez.
+
+    Evita `paragraph.style` por parágrafo (que dispara `styles.default_for`, caro).
+    """
+    niveis = {}
+    for estilo in doc.styles:
+        nivel = _nivel_por_nomes(estilo.name, estilo.style_id)
+        if nivel:
+            niveis[estilo.style_id] = nivel
+    return niveis
+
+
 def formatar_titulos(doc: Document):
     """
     Ajusta os estilos de título (Heading 1/2/3) para as regras ABNT:
     negrito, fonte Arial, tamanhos específicos e alinhamento adequado.
     """
+    niveis = _mapa_niveis(doc)
     for paragrafo in doc.paragraphs:
-        nivel = _nivel_titulo(paragrafo)
+        nivel = niveis.get(paragrafo._p.style, 0)
         if nivel == 0:
             continue
 

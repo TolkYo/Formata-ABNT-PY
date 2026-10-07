@@ -28,6 +28,18 @@ SUBSECAO_COM_CORPO_RE = re.compile(
     r"^(?P<titulo>\d+\.\d+\.?\s+.+?)(?:\s{2,})(?=\S)"
 )
 
+# Elementos cujo parágrafo não pode ser repartido com segurança.
+_ELEMENTOS_NAO_REPARTIVEIS = frozenset(
+    qn(tag)
+    for tag in (
+        "w:drawing",
+        "w:object",
+        "w:fldChar",
+        "w:footnoteReference",
+        "w:hyperlink",
+    )
+)
+
 
 def _texto_comparavel(texto: str) -> str:
     sem_acentos = "".join(
@@ -81,9 +93,18 @@ def _configurar_estilos(documento: Document) -> dict[str, object]:
     }
 
     estilos = {}
+    existentes = {estilo.name: estilo for estilo in documento.styles}
+
+    def obter(nome: str):
+        estilo = existentes.get(nome)
+        if estilo is None:
+            estilo = documento.styles.add_style(nome, WD_STYLE_TYPE.PARAGRAPH)
+            existentes[nome] = estilo
+        return estilo
+
     for rotulo, valores in especificacoes.items():
         tamanho, negrito, alinhamento, recuo, entrelinhas, antes, depois, manter = valores
-        estilo = _obter_ou_criar_estilo(documento, f"{PREFIXO} {rotulo}")
+        estilo = obter(f"{PREFIXO} {rotulo}")
         estilo.base_style = normal
         _configurar_fonte(estilo, tamanho, negrito=negrito)
         formato = estilo.paragraph_format
@@ -108,7 +129,7 @@ def _limpar_formatacao_direta(paragrafo) -> None:
             propriedades.remove(elemento)
 
     for trecho in paragrafo.runs:
-        if trecho._r.xpath(".//w:footnoteReference"):
+        if trecho._r.find(qn("w:footnoteReference")) is not None:
             continue
         propriedades_trecho = trecho._r.rPr
         if propriedades_trecho is None:
@@ -178,10 +199,7 @@ def _separar_blocos_concatenados(documento: Document) -> None:
             continue
 
         # Elementos não textuais não podem ser repartidos com segurança.
-        if paragrafo._p.xpath(
-            ".//w:drawing | .//w:object | .//w:fldChar | "
-            ".//w:footnoteReference | .//w:hyperlink"
-        ):
+        if any(el.tag in _ELEMENTOS_NAO_REPARTIVEIS for el in paragrafo._p.iter()):
             continue
 
         anterior = paragrafo._p
@@ -199,30 +217,32 @@ def _separar_blocos_concatenados(documento: Document) -> None:
 def classificar_paragrafos(documento: Document) -> list[str]:
     """Classifica parágrafos pela estrutura textual do artigo."""
     paragrafos = documento.paragraphs
-    nao_vazios = [indice for indice, p in enumerate(paragrafos) if p.text.strip()]
+    textos = [p.text for p in paragrafos]
+    aparados = [texto.strip() for texto in textos]
+    nao_vazios = [indice for indice, texto in enumerate(aparados) if texto]
     if not nao_vazios:
         return ["Espaço"] * len(paragrafos)
 
     primeiro = nao_vazios[0]
-    normalizados = [_texto_comparavel(p.text) for p in paragrafos]
+    normalizados = [_texto_comparavel(texto) for texto in textos]
     indices_resumo = [
         indice
         for indice, texto in enumerate(normalizados)
         if texto in {"RESUMO", "ABSTRACT"}
     ]
     primeiro_resumo = indices_resumo[0] if indices_resumo else None
-    classificacoes = ["Espaço" if not p.text.strip() else "Corpo" for p in paragrafos]
+    classificacoes = ["Espaço" if not texto else "Corpo" for texto in aparados]
     classificacoes[primeiro] = "Título"
 
     if primeiro_resumo is not None:
         for indice in range(primeiro + 1, primeiro_resumo):
-            if paragrafos[indice].text.strip():
+            if aparados[indice]:
                 classificacoes[indice] = "Autor"
 
     em_resumo = False
     em_referencias = False
-    for indice, paragrafo in enumerate(paragrafos):
-        texto = paragrafo.text.strip()
+    for indice in range(len(paragrafos)):
+        texto = aparados[indice]
         comparavel = normalizados[indice]
         if not texto or indice == primeiro:
             continue
@@ -265,10 +285,11 @@ def normalizar_documento(documento: Document) -> dict[str, int]:
         secao.bottom_margin = Cm(2)
         secao.right_margin = Cm(2)
 
+    ids_estilo = {rotulo: estilo.style_id for rotulo, estilo in estilos.items()}
     classificacoes = classificar_paragrafos(documento)
     totais = {rotulo: 0 for rotulo in estilos}
     for paragrafo, rotulo in zip(documento.paragraphs, classificacoes):
         _limpar_formatacao_direta(paragrafo)
-        paragrafo.style = estilos[rotulo]
+        paragrafo._p.style = ids_estilo[rotulo]
         totais[rotulo] += 1
     return totais
