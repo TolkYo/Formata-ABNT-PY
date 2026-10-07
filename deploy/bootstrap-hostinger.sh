@@ -151,7 +151,10 @@ docker compose -f "$PROJECT_DIR/docker-compose.yml" build
 # --- 9. Stack Swarm ----------------------------------------------------------
 log "Publicando stack $STACK_NAME"
 docker stack deploy --prune --resolve-image never -c "$PROJECT_DIR/deploy/stack.yml" "$STACK_NAME"
-docker service update --force --no-resolve-image "${STACK_NAME}_api" "${STACK_NAME}_web" >/dev/null 2>&1 || true
+# A tag de imagem nao muda entre builds; forcar o roll para pegar o build novo.
+docker service update --force --image formatador-api:latest "${STACK_NAME}_api" >/dev/null 2>&1 || true
+docker service update --force --image formatador-api:latest "${STACK_NAME}_worker" >/dev/null 2>&1 || true
+docker service update --force --image formatador-web:latest "${STACK_NAME}_web" >/dev/null 2>&1 || true
 
 # --- 10. nginx da borda (HTTP) ----------------------------------------------
 log "Configurando nginx da borda para $DOMAIN"
