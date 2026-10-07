@@ -68,20 +68,8 @@
                 </template>
               </div>
 
-              <h2 class="h5 mt-4 mb-3">2. Escolha o padrão</h2>
-              <div class="row g-2" role="radiogroup" aria-label="Padrão de formatação">
-                <div class="col-12">
-                  <input id="modo-abnt" class="btn-check" type="radio" value="abnt"
-                         v-model="modoFormatacao" autocomplete="off">
-                  <label class="btn btn-outline-primary w-100 h-100 p-3 text-start" for="modo-abnt">
-                    <strong class="d-block"><i class="bi bi-file-text me-1"></i>ABNT geral</strong>
-                    <small>Formatação tradicional, com opções de capa e sumário.</small>
-                  </label>
-                </div>
-              </div>
-
-              <div v-if="!fametroSelecionado" class="mt-4">
-                <h2 class="h5 mb-2">3. Opções adicionais</h2>
+              <div class="mt-4">
+                <h2 class="h5 mb-2">2. Opções adicionais</h2>
                 <div class="form-check form-switch">
                   <input id="opt-capa" class="form-check-input" type="checkbox" v-model="opcoes.incluir_capa">
                   <label class="form-check-label" for="opt-capa">Incluir capa</label>
@@ -123,13 +111,7 @@
                 </div>
               </div>
 
-              <div v-else class="alert alert-primary mt-4 mb-0" role="status">
-                <i class="bi bi-info-circle me-1"></i>
-                O arquivo será analisado e receberá estilos específicos para título, autores,
-                resumo, seções, subseções, corpo e referências.
-              </div>
-
-              <h2 class="h5 mt-4 mb-3">{{ fametroSelecionado ? '3' : '4' }}. Processar</h2>
+              <h2 class="h5 mt-4 mb-3">3. Processar</h2>
               <button class="btn btn-success btn-lg w-100" type="button"
                       :disabled="!arquivo || ocupado" @click="formatar">
                 <span v-if="ocupado" class="spinner-border spinner-border-sm me-2"></span>

@@ -1,6 +1,7 @@
 import io
 
 from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -32,13 +33,13 @@ def test_endpoint_enfileira_e_retorna_202(monkeypatch):
             "id": "a" * 32,
             "status": "na_fila",
             "posicao": 1,
-            "nome_saida": "artigo_fametro.docx",
+            "nome_saida": "artigo_formatado.docx",
         },
     )
     cliente = TestClient(app)
     resposta = cliente.post(
         "/jobs/formatar",
-        data={"modo": "fametro"},
+        data={"modo": "abnt"},
         files={"file": ("artigo.docx", _docx_bytes(), DOCX_MIME)},
     )
 
@@ -94,12 +95,13 @@ def test_worker_processa_em_volume_temporario(monkeypatch, tmp_path):
     pasta.mkdir()
     (pasta / "entrada.docx").write_bytes(_docx_bytes())
 
-    retorno = fila_documentos.processar_documento(job_id, "fametro", {}, "hash")
+    retorno = fila_documentos.processar_documento(job_id, "abnt", {}, "hash")
 
     assert retorno == {"arquivo": "saida.docx"}
     assert not (pasta / "entrada.docx").exists()
     resultado = Document(str(pasta / "saida.docx"))
-    assert resultado.paragraphs[0].style.name == "FAMETRO Título"
+    assert resultado.paragraphs[0].alignment == WD_ALIGN_PARAGRAPH.JUSTIFY
+    assert resultado.paragraphs[0].runs[0].font.name == "Arial"
 
 
 def test_validacao_rejeita_conteudo_falso():

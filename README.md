@@ -18,7 +18,6 @@ A API fica disponível em `http://127.0.0.1:8000`.
 | GET    | `/health`           | Saúde da API e link de doações              |
 | POST   | `/formatar`         | Formata um `.docx` e devolve o arquivo      |
 | POST   | `/formatar/validar` | Valida a estrutura mínima sem formatar      |
-| POST   | `/formatar/fametro` | Normaliza um artigo no padrão FAMETRO       |
 | POST   | `/jobs/formatar`     | Enfileira uma formatação e retorna `202`    |
 | GET    | `/jobs/{id}`         | Consulta posição e estado do processamento  |
 | GET    | `/jobs/{id}/download` | Baixa e remove o resultado concluído       |
@@ -59,22 +58,6 @@ Recebe um arquivo `.docx` (multipart/form-data) e devolve o documento formatado 
 - Espaçamento entre linhas: 1,5.
 - Fonte Arial, tamanho 12.
 - Títulos (Heading/Título 1, 2 e 3): negrito, cor preta, tamanhos e alinhamentos ABNT.
-
-### 3.1. Endpoint `POST /formatar/fametro`
-
-Recebe um artigo `.docx` em `multipart/form-data`, no campo `file`, reconhece sua
-estrutura pelo conteúdo e devolve o documento com estilos FAMETRO normalizados.
-
-O normalizador identifica título, autores, resumo, palavras-chave, seções,
-subseções, corpo e referências. Também aplica página A4, margens 3/2 cm, fonte
-Arial e os recuos e espaçamentos próprios de cada elemento. Notas de rodapé,
-negritos, itálicos e destaques do conteúdo são preservados.
-
-```powershell
-curl.exe -X POST "http://127.0.0.1:8000/formatar/fametro" `
-  -F "file=@artigo.docx" `
-  -o artigo_fametro.docx
-```
 
 ---
 

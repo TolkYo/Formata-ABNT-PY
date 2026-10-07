@@ -121,12 +121,6 @@
     return enviarDocumento('/formatar', payload, 'documento_formatado.docx', onProgress);
   }
 
-  function normalizarFametro(file, onProgress) {
-    var form = new FormData();
-    form.append('file', file);
-    return enviarDocumento('/formatar/fametro', form, 'documento_fametro.docx', onProgress);
-  }
-
   function validar(file) {
     var form = new FormData();
     form.append('file', file);
@@ -150,7 +144,6 @@
   global.ApiABNT = {
     base: API_BASE,
     formatar: formatar,
-    normalizarFametro: normalizarFametro,
     enfileirar: enfileirar,
     consultarJob: consultarJob,
     baixarJob: baixarJob,

@@ -34,8 +34,8 @@ da API remove diretorios abandonados a cada cinco minutos quando atingem o TTL.
 
 ## API
 
-`POST /jobs/formatar` recebe `multipart/form-data`: `file`, `modo` (`abnt` ou
-`fametro`), as opcoes booleanas e o JSON opcional `dados`.
+`POST /jobs/formatar` recebe `multipart/form-data`: `file`, `modo` (`abnt`), as
+opcoes booleanas e o JSON opcional `dados`.
 
 Resposta `202`:
 
@@ -157,5 +157,5 @@ curl -fsS http://127.0.0.1:8080/health
 - Fila presa: preserve primeiro `jobs-data`, examine os logs e so depois cancele jobs.
 - API com memoria elevada: `docker service update --force formatador_api`.
 
-Os endpoints sincronizados antigos `/formatar` e `/formatar/fametro` foram
-mantidos para compatibilidade. O frontend publico usa exclusivamente `/jobs`.
+O endpoint sincronizado antigo `/formatar` foi mantido para compatibilidade. O
+frontend publico usa exclusivamente `/jobs`.

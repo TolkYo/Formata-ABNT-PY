@@ -1,9 +1,7 @@
 import io
 import os
-import re
 import time
 from typing import Optional
-from urllib.parse import quote
 
 from docx import Document
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
@@ -19,7 +17,6 @@ from app.formatter import (
     validar_estrutura,
 )
 from app.services import metricas
-from app.services.normalizacao_fametro import normalizar_documento
 
 router = APIRouter(tags=["Publico"])
 
@@ -88,19 +85,6 @@ def _parse_dados(dados: Optional[str]) -> dict:
             status_code=400,
             detail="O campo 'dados' deve ser um JSON válido.",
         )
-
-
-def _content_disposition(nome_arquivo: str) -> str:
-    """Monta um nome de download seguro e compatível com UTF-8."""
-    nome_seguro = nome_arquivo.replace("\\", "/").rsplit("/", 1)[-1]
-    nome_seguro = nome_seguro.replace('"', "").replace("\r", "").replace("\n", "")
-    fallback_ascii = nome_seguro.encode("ascii", "ignore").decode("ascii")
-    fallback = re.sub(r"[^A-Za-z0-9._-]+", "_", fallback_ascii).strip("._")
-    fallback = fallback or "documento.docx"
-    return (
-        f'attachment; filename="{fallback}"; '
-        f"filename*=UTF-8''{quote(nome_seguro)}"
-    )
 
 
 @router.post("/formatar")
@@ -180,59 +164,3 @@ def validar_documento(file: UploadFile = File(...)):
     faltantes = validar_estrutura(doc)
     return {"valido": not faltantes, "secoes_ausentes": faltantes}
 
-
-@router.post(
-    "/formatar/fametro",
-    summary="Normalizar artigo no padrão FAMETRO",
-    response_class=StreamingResponse,
-    responses={
-        200: {
-            "description": "Documento DOCX normalizado",
-            "content": {
-                DOCX_MIME: {
-                    "schema": {"type": "string", "format": "binary"},
-                }
-            },
-        },
-        400: {"description": "Documento inválido"},
-        413: {"description": "Arquivo acima do limite permitido"},
-    },
-)
-def normalizar_documento_fametro(
-    request: Request,
-    file: UploadFile = File(...),
-):
-    """Normaliza um artigo .docx conforme a estrutura FAMETRO."""
-    inicio = time.perf_counter()
-    ip_hash = metricas.ip_para_hash(_client_ip(request))
-    tamanho: Optional[int] = None
-    resultado = "erro"
-
-    try:
-        doc, tamanho = _ler_docx(file)
-        normalizar_documento(doc)
-
-        output = io.BytesIO()
-        doc.save(output)
-        output.seek(0)
-
-        nome_original = (file.filename or "documento.docx").replace("\\", "/")
-        nome_base = os.path.splitext(nome_original.rsplit("/", 1)[-1])[0]
-        nome_saida = f"{nome_base}_fametro.docx"
-
-        resultado = "sucesso"
-        return StreamingResponse(
-            output,
-            media_type=DOCX_MIME,
-            headers={"Content-Disposition": _content_disposition(nome_saida)},
-        )
-    except HTTPException:
-        raise
-    except Exception:
-        raise HTTPException(
-            status_code=500,
-            detail="Erro ao normalizar o documento no padrão FAMETRO.",
-        )
-    finally:
-        duracao_ms = int((time.perf_counter() - inicio) * 1000)
-        metricas.registrar_evento(ip_hash, resultado, duracao_ms, tamanho)

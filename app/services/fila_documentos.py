@@ -32,7 +32,6 @@ from app.formatter import (
     validar_estrutura,
 )
 from app.services import metricas
-from app.services.normalizacao_fametro import normalizar_documento
 
 ID_RE = re.compile(r"^[a-f0-9]{32}$")
 
@@ -110,11 +109,10 @@ def validar_docx_bytes(nome: str, conteudo: bytes) -> None:
         )
 
 
-def _nome_saida(nome_original: str, modo: str) -> str:
+def _nome_saida(nome_original: str) -> str:
     nome = nome_original.replace("\\", "/").rsplit("/", 1)[-1]
     base = os.path.splitext(nome)[0] or "documento"
-    sufixo = "_fametro.docx" if modo == "fametro" else "_formatado.docx"
-    return f"{base}{sufixo}"
+    return f"{base}_formatado.docx"
 
 
 def enfileirar(
@@ -145,7 +143,7 @@ def enfileirar(
     try:
         with entrada.open("xb") as arquivo:
             arquivo.write(conteudo)
-        nome_saida = _nome_saida(nome_original, modo)
+        nome_saida = _nome_saida(nome_original)
         job = fila.enqueue_call(
             func="app.services.fila_documentos.processar_documento",
             args=(job_id, modo, opcoes, ip_hash),
@@ -196,25 +194,22 @@ def processar_documento(
             job.save_meta()
 
         documento = Document(str(entrada))
-        if modo == "fametro":
-            resumo = normalizar_documento(documento)
-        elif modo == "abnt":
-            if opcoes.get("validar"):
-                faltantes = validar_estrutura(documento)
-                if faltantes:
-                    raise ValueError(
-                        "Documento fora da estrutura minima. Secoes ausentes: "
-                        + ", ".join(faltantes)
-                    )
-            formatar_abnt(documento)
-            formatar_titulos(documento)
-            if opcoes.get("incluir_sumario"):
-                adicionar_sumario(documento)
-            if opcoes.get("incluir_capa"):
-                adicionar_capa(documento, opcoes.get("dados") or {})
-            resumo = {}
-        else:
+        if modo != "abnt":
             raise ValueError("Modo de formatacao invalido.")
+        if opcoes.get("validar"):
+            faltantes = validar_estrutura(documento)
+            if faltantes:
+                raise ValueError(
+                    "Documento fora da estrutura minima. Secoes ausentes: "
+                    + ", ".join(faltantes)
+                )
+        formatar_abnt(documento)
+        formatar_titulos(documento)
+        if opcoes.get("incluir_sumario"):
+            adicionar_sumario(documento)
+        if opcoes.get("incluir_capa"):
+            adicionar_capa(documento, opcoes.get("dados") or {})
+        resumo = {}
 
         documento.save(str(temporario))
         os.replace(temporario, saida)

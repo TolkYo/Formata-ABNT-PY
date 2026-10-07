@@ -66,8 +66,8 @@ def criar_job_formatacao(
     incluir_sumario: bool = Form(False),
     validar: bool = Form(False),
 ):
-    if modo not in {"abnt", "fametro"}:
-        raise HTTPException(status_code=400, detail="Modo deve ser 'abnt' ou 'fametro'.")
+    if modo != "abnt":
+        raise HTTPException(status_code=400, detail="Modo inválido. Use 'abnt'.")
     conteudo = file.file.read(settings.max_upload_bytes + 1)
     opcoes = {
         "dados": _dados_capa(dados),

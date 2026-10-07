@@ -110,38 +110,6 @@ paths:
         "400":
           description: Documento invalido
 
-  /formatar/fametro:
-    post:
-      tags: [Publico]
-      summary: Normalizar artigo .docx no padrao FAMETRO
-      description: >
-        Reconhece a estrutura textual do artigo, aplica estilos semanticos
-        FAMETRO e devolve o documento normalizado sem alterar seu conteudo.
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required: [file]
-              properties:
-                file: { type: string, format: binary }
-      responses:
-        "200":
-          description: Arquivo normalizado
-          headers:
-            Content-Disposition:
-              schema: { type: string }
-          content:
-            application/vnd.openxmlformats-officedocument.wordprocessingml.document:
-              schema: { type: string, format: binary }
-        "400":
-          description: Documento invalido
-        "413":
-          description: Arquivo acima do limite
-        "429":
-          description: Rate limit tecnico
-
   /jobs/formatar:
     post:
       tags: [Publico]
@@ -155,7 +123,7 @@ paths:
               required: [file, modo]
               properties:
                 file: { type: string, format: binary }
-                modo: { type: string, enum: [abnt, fametro] }
+                modo: { type: string, enum: [abnt] }
                 dados: { type: string, description: JSON da capa }
                 incluir_capa: { type: boolean, default: false }
                 incluir_sumario: { type: boolean, default: false }

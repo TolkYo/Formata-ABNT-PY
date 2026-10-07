@@ -9,7 +9,6 @@
       return {
         arquivo: null,
         arrastando: false,
-        modoFormatacao: 'abnt',
         opcoes: {
           incluir_capa: false,
           incluir_sumario: false,
@@ -51,11 +50,8 @@
       limiteBytes: function () {
         return this.limiteMb * 1024 * 1024;
       },
-      fametroSelecionado: function () {
-        return this.modoFormatacao === 'fametro';
-      },
       textoBotao: function () {
-        return this.fametroSelecionado ? 'Normalizar artigo FAMETRO' : 'Formatar documento';
+        return 'Formatar documento';
       },
       ocupado: function () {
         return ['enviando', 'na_fila', 'processando', 'baixando'].indexOf(this.status) !== -1;
@@ -70,20 +66,9 @@
         return '';
       },
       mensagemSucesso: function () {
-        return this.fametroSelecionado
-          ? 'Artigo normalizado no padrão FAMETRO com sucesso!'
-          : 'Documento formatado com sucesso!';
+        return 'Documento formatado com sucesso!';
       },
       regrasAplicadas: function () {
-        if (this.fametroSelecionado) {
-          return [
-            'Identificação automática de título, autores e resumo',
-            'Estilos próprios para seções, subseções e referências',
-            'Arial 10 no resumo e Arial 12 nos demais elementos',
-            'Margens: 3 cm (superior/esquerda) e 2 cm (inferior/direita)',
-            'Preservação de notas de rodapé e destaques do conteúdo',
-          ];
-        }
         return [
           'Margens: 3 cm (superior/esquerda) e 2 cm (inferior/direita)',
           'Fonte Arial 12 em todo o texto',
@@ -168,7 +153,7 @@
 
         var form = new FormData();
         form.append('file', this.arquivo);
-        form.append('modo', this.fametroSelecionado ? 'fametro' : 'abnt');
+        form.append('modo', 'abnt');
         form.append('incluir_capa', this.opcoes.incluir_capa);
         form.append('incluir_sumario', this.opcoes.incluir_sumario);
         form.append('validar', this.opcoes.validar);
